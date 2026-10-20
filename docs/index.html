@@ -251,8 +251,16 @@ input[type="checkbox"]{width:26px;height:26px;min-height:0;padding:0;accent-colo
    Reading confirmations uses the user's own Anthropic API key in both. */
 (function(){
   var C=window.Capacitor;
-  var NATIVE=!!(C&&C.isNativePlatform&&C.isNativePlatform());
-  window.PERCY_NATIVE=true;window.PERCY_MODE=NATIVE?'native':'pwa';
+  var DIAG=window.PERCY_DIAG={cap:!!C,err:''};
+  var table={};
+  window.claude={use:function(n){return Promise.resolve(table[n]||null);}};
+  var NATIVE=false;try{NATIVE=!!(C&&C.isNativePlatform&&C.isNativePlatform());}catch(e){}
+  DIAG.native=NATIVE;
+  function plug(n){var p=null;try{if(C&&C.registerPlugin)p=C.registerPlugin(n);}catch(e){DIAG.err+=' reg:'+n+':'+(e&&e.message);}if(!p&&C&&C.Plugins)p=C.Plugins[n]||null;return p;}
+  var FS=null,Opener=null;
+  if(NATIVE){try{FS=plug('Filesystem');Opener=plug('FileOpener');if(!FS||typeof FS.writeFile!=='function')FS=null;}catch(e){FS=null;DIAG.err+=' plug:'+(e&&e.message);}}
+  var USE_FS=!!FS;DIAG.fs=USE_FS;
+  window.PERCY_NATIVE=true;window.PERCY_MODE=USE_FS?'native':'pwa';
   function san(s){return String(s||'').replace(/[\\\/:*?"<>|\u0000-\u001f]+/g,' ').replace(/\s+/g,' ').trim().slice(0,60);}
   function rid(){var a=new Uint8Array(16);crypto.getRandomValues(a);return Array.prototype.map.call(a,function(b){return ('0'+b.toString(16)).slice(-2);}).join('');}
   function b64(blob){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(String(r.result).split(',')[1]||'');};r.onerror=function(){rej(r.error);};r.readAsDataURL(blob);});}
@@ -260,8 +268,7 @@ input[type="checkbox"]{width:26px;height:26px;min-height:0;padding:0;accent-colo
   var urlCache={},assets,downloads,blobUrl;
   window.PercyNative={};
 
-  if(NATIVE){
-    var FS=C.registerPlugin('Filesystem'),Opener=C.registerPlugin('FileOpener');
+  if(USE_FS){
     var KEY='percy.files',idx={};
     try{idx=JSON.parse(localStorage.getItem(KEY)||'{}')||{};}catch(e){idx={};}
     var saveIdx=function(){try{localStorage.setItem(KEY,JSON.stringify(idx));}catch(e){}};
@@ -377,7 +384,7 @@ input[type="checkbox"]{width:26px;height:26px;min-height:0;padding:0;accent-colo
         return {status:'saved',where:'your Downloads'};
       }
     };
-    if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){
+    if(!NATIVE&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){
       window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
     }
   }
@@ -434,8 +441,8 @@ input[type="checkbox"]{width:26px;height:26px;min-height:0;padding:0;accent-colo
     if(!text.trim())throw {code:'empty_completion',message:'empty'};
     return parseJSONLoose(text);
   };
-  var table={assets:assets,downloads:downloads,sample:sample};
-  window.claude={use:function(n){return Promise.resolve(table[n]||null);}};
+  table.assets=assets;table.downloads=downloads;table.sample=sample;
+  DIAG.ready=true;
 })();
 
 </script>
@@ -957,7 +964,7 @@ function viewData(){
   var h=moreBack('Backup & data');
   var where=window.PERCY_MODE==='native'?'Your items are saved on this phone, inside the Percy app. Files you attach are saved in your phone’s Documents folder under Percy, in a folder for each trip. Export a backup before you uninstall the app or change phones.':window.PERCY_MODE==='pwa'?'Your items and attached files are saved on this phone, inside Percy, with a folder for each trip under the Files tab of the trip. Open Percy from its Home Screen icon so the phone is less likely to clear it, and export a backup now and then. A backup holds your items but not the attached files.':S.mode==='cloud'?'Your items are saved in this app’s private storage on claude.ai and are visible only to you unless you share the artifact. Keep link sharing off, because this app can hold scans of identity documents.':'Your items are saved in this browser only. Open the app from your Claude artifacts while signed in to keep them in private storage.';
   h+='<div class="card"><p>'+esc(where)+'</p></div>';
-  if(window.PERCY_NATIVE)h+=keyCardHTML();
+  if(window.PERCY_NATIVE){h+=keyCardHTML();var dg=window.PERCY_DIAG||{};h+='<p class="note">Build 3 · '+(dg.fs?'files go to Documents › Percy':'files kept inside the app')+' · reading '+(dg.ready?'ready':'not ready')+(dg.err?' · '+esc(dg.err):'')+'</p>';}
   h+='<div class="card"><p><b>'+S.items.size+'</b> items saved. Files are stored separately; a backup holds the items and their file references, not the files themselves.</p></div>';
   h+='<div style="display:flex;gap:10px;flex-wrap:wrap">'+(caps.downloads?'<button class="btn" type="button" data-act="export">'+ic('download',18)+'Export backup</button>':'')+'<button class="btn" type="button" data-act="importPick">'+ic('upload',18)+'Restore from backup</button><input class="vh" type="file" id="importInput" accept="application/json,.json" tabindex="-1"></div>';
   if(!caps.downloads)h+='<p class="note">Saving a backup file is not available in this view.</p>';
