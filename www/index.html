@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><title>Percy</title>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0E5A5A">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0E5A5A"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Percy"><meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
 @font-face{font-family:'Atkinson Hyperlegible';font-weight:400;font-style:normal;font-display:swap;src:url(fonts/atkinson-hyperlegible-latin-400-normal.woff2) format('woff2')}
 @font-face{font-family:'Atkinson Hyperlegible';font-weight:700;font-style:normal;font-display:swap;src:url(fonts/atkinson-hyperlegible-latin-700-normal.woff2) format('woff2')}
@@ -34,6 +34,7 @@
   --scrim:rgba(0,0,0,.65);--shadow:0 2px 8px rgba(0,0,0,.5);
   color-scheme:dark;
 }
+[hidden]{display:none!important}
 *,*::before,*::after{box-sizing:border-box}
 html{font-size:100%}
 body{background:var(--bg);color:var(--ink);font:1.0625rem/1.5 var(--f-body);-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
@@ -243,91 +244,155 @@ input[type="checkbox"]{width:26px;height:26px;min-height:0;padding:0;accent-colo
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script>
-/* Percy native shim: gives the page the same "claude.use(...)" capabilities it had as an artifact,
-   backed by the phone: files in Documents/Percy/<trip>/, reading via the Anthropic API with the user's own key. */
+/* Percy standalone shim: gives the page the same "claude.use(...)" capabilities it had as an artifact.
+   Two modes:
+   - native (Capacitor Android app): files in Documents/Percy/<trip>/
+   - pwa (installed from the browser, iPhone or Android): files in the browser's own storage (IndexedDB)
+   Reading confirmations uses the user's own Anthropic API key in both. */
 (function(){
   var C=window.Capacitor;
-  if(!C||!C.isNativePlatform||!C.isNativePlatform())return;
-  window.PERCY_NATIVE=true;
-  var FS=C.registerPlugin('Filesystem'),Opener=C.registerPlugin('FileOpener');
-  var KEY='percy.files',idx={};
-  try{idx=JSON.parse(localStorage.getItem(KEY)||'{}')||{};}catch(e){idx={};}
-  function saveIdx(){try{localStorage.setItem(KEY,JSON.stringify(idx));}catch(e){}}
+  var NATIVE=!!(C&&C.isNativePlatform&&C.isNativePlatform());
+  window.PERCY_NATIVE=true;window.PERCY_MODE=NATIVE?'native':'pwa';
   function san(s){return String(s||'').replace(/[\\\/:*?"<>|\u0000-\u001f]+/g,' ').replace(/\s+/g,' ').trim().slice(0,60);}
   function rid(){var a=new Uint8Array(16);crypto.getRandomValues(a);return Array.prototype.map.call(a,function(b){return ('0'+b.toString(16)).slice(-2);}).join('');}
   function b64(blob){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(String(r.result).split(',')[1]||'');};r.onerror=function(){rej(r.error);};r.readAsDataURL(blob);});}
   function fromB64(d,type){var bin=atob(d),n=bin.length,u=new Uint8Array(n);for(var i=0;i<n;i++)u[i]=bin.charCodeAt(i);return new Blob([u],{type:type||'application/octet-stream'});}
-  var permAsked=false;
-  async function ensurePerm(){if(permAsked)return;permAsked=true;try{await FS.requestPermissions();}catch(e){}}
-  async function writeTo(rel,data,enc){
-    await ensurePerm();
-    var dirs=['DOCUMENTS','DATA'],last=null;
-    for(var i=0;i<dirs.length;i++){
-      try{var o={path:rel,data:data,directory:dirs[i],recursive:true};if(enc)o.encoding=enc;await FS.writeFile(o);return dirs[i];}catch(e){last=e;}
-    }
-    throw last||new Error('write');
-  }
-  var assets={
-    upload:async function(file,o){
-      o=o||{};
-      var folder=san(o.folder)||'Other',name=san(file.name)||'file';
-      var dot=name.lastIndexOf('.'),base=dot>0?name.slice(0,dot):name,ext=dot>0?name.slice(dot):'';
-      var used={};Object.keys(idx).forEach(function(k){used[idx[k].path]=1;});
-      var rel='Percy/'+folder+'/'+name,n=2;
-      while(used[rel]){rel='Percy/'+folder+'/'+base+' ('+n+')'+ext;n++;}
-      var data=await b64(file);
-      var dir;
-      try{dir=await writeTo(rel,data);}catch(e){throw {code:'quota_or_state',message:String(e&&e.message||e)};}
-      var id=rid(),type=o.type||file.type||'application/octet-stream';
-      idx[id]={dir:dir,path:rel,type:type};saveIdx();
-      return {id:id,contentType:type,sizeBytes:file.size};
-    },
-    delete:async function(id){
-      var m=idx[id];if(!m)return;
-      try{await FS.deleteFile({path:m.path,directory:m.dir});}catch(e){}
-      delete idx[id];saveIdx();
-    }
-  };
-  var urlCache={};
-  async function blobUrl(id){
-    if(urlCache[id])return urlCache[id];
-    var m=idx[id];if(!m)throw new Error('missing');
-    var r=await FS.readFile({path:m.path,directory:m.dir});
-    return (urlCache[id]=URL.createObjectURL(fromB64(r.data,m.type)));
-  }
-  window.PercyNative={
-    open:async function(id,type){
+  var urlCache={},assets,downloads,blobUrl;
+  window.PercyNative={};
+
+  if(NATIVE){
+    var FS=C.registerPlugin('Filesystem'),Opener=C.registerPlugin('FileOpener');
+    var KEY='percy.files',idx={};
+    try{idx=JSON.parse(localStorage.getItem(KEY)||'{}')||{};}catch(e){idx={};}
+    var saveIdx=function(){try{localStorage.setItem(KEY,JSON.stringify(idx));}catch(e){}};
+    var permAsked=false;
+    var ensurePerm=async function(){if(permAsked)return;permAsked=true;try{await FS.requestPermissions();}catch(e){}};
+    var writeTo=async function(rel,data,enc){
+      await ensurePerm();
+      var dirs=['DOCUMENTS','DATA'],last=null;
+      for(var i=0;i<dirs.length;i++){
+        try{var o={path:rel,data:data,directory:dirs[i],recursive:true};if(enc)o.encoding=enc;await FS.writeFile(o);return dirs[i];}catch(e){last=e;}
+      }
+      throw last||new Error('write');
+    };
+    assets={
+      upload:async function(file,o){
+        o=o||{};
+        var folder=san(o.folder)||'Other',name=san(file.name)||'file';
+        var dot=name.lastIndexOf('.'),base=dot>0?name.slice(0,dot):name,ext=dot>0?name.slice(dot):'';
+        var used={};Object.keys(idx).forEach(function(k){used[idx[k].path]=1;});
+        var rel='Percy/'+folder+'/'+name,n=2;
+        while(used[rel]){rel='Percy/'+folder+'/'+base+' ('+n+')'+ext;n++;}
+        var data=await b64(file),dir;
+        try{dir=await writeTo(rel,data);}catch(e){throw {code:'quota_or_state',message:String(e&&e.message||e)};}
+        var id=rid(),type=o.type||file.type||'application/octet-stream';
+        idx[id]={dir:dir,path:rel,type:type};saveIdx();
+        return {id:id,contentType:type,sizeBytes:file.size};
+      },
+      delete:async function(id){
+        var m=idx[id];if(!m)return;
+        try{await FS.deleteFile({path:m.path,directory:m.dir});}catch(e){}
+        delete idx[id];saveIdx();
+      }
+    };
+    blobUrl=async function(id){
+      if(urlCache[id])return urlCache[id];
+      var m=idx[id];if(!m)throw new Error('missing');
+      var r=await FS.readFile({path:m.path,directory:m.dir});
+      return (urlCache[id]=URL.createObjectURL(fromB64(r.data,m.type)));
+    };
+    window.PercyNative.open=async function(id,type){
       var m=idx[id];
-      if(!m){alert('This file is not on this phone any more. It may have been added on another device.');return;}
+      if(!m){alert('This file is not on this phone any more.');return;}
       try{
         var u=await FS.getUri({path:m.path,directory:m.dir});
         await Opener.open({filePath:u.uri,contentType:m.type||type||'application/pdf'});
       }catch(e){
         try{window.open(await blobUrl(id),'_blank');}catch(e2){alert('Could not open this file. Look for it in your Files app under Documents, Percy.');}
       }
+    };
+    downloads={
+      save:async function(req){
+        var data=req.data,isStr=typeof data==='string';
+        var payload=isStr?data:await b64(data instanceof Blob?data:new Blob([data]));
+        var dir=await writeTo('Percy/Backups/'+(san(req.filename)||'percy-file'),payload,isStr?'utf8':undefined);
+        return {status:'saved',where:(dir==='DOCUMENTS'?'Documents':'the Percy app')+' › Percy › Backups'};
+      }
+    };
+  }else{
+    /* PWA: IndexedDB */
+    var dbp=null;
+    var idb=function(){
+      if(dbp)return dbp;
+      dbp=new Promise(function(res,rej){
+        var q=indexedDB.open('percy-files',1);
+        q.onupgradeneeded=function(){q.result.createObjectStore('f');};
+        q.onsuccess=function(){res(q.result);};
+        q.onerror=function(){dbp=null;rej(q.error);};
+      });
+      return dbp;
+    };
+    var tx=function(mode,fn){
+      return idb().then(function(db){return new Promise(function(res,rej){
+        var t=db.transaction('f',mode),r=fn(t.objectStore('f'));
+        t.oncomplete=function(){res(r&&r.result);};
+        t.onerror=t.onabort=function(){rej(t.error);};
+      });});
+    };
+    assets={
+      upload:async function(file,o){
+        o=o||{};
+        var id=rid(),type=o.type||file.type||'application/octet-stream';
+        try{await tx('readwrite',function(st){return st.put({blob:file.slice(0,file.size,type),name:file.name,type:type,folder:san(o.folder)||'Other'},id);});}
+        catch(e){throw {code:'quota_or_state',message:String(e&&e.message||e)};}
+        try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
+        return {id:id,contentType:type,sizeBytes:file.size};
+      },
+      delete:async function(id){try{await tx('readwrite',function(st){return st.delete(id);});}catch(e){}}
+    };
+    blobUrl=async function(id){
+      if(urlCache[id])return urlCache[id];
+      var rec=await tx('readonly',function(st){return st.get(id);});
+      if(!rec)throw new Error('missing');
+      return (urlCache[id]=URL.createObjectURL(rec.blob));
+    };
+    window.PercyNative.open=async function(id){
+      try{
+        var u=await blobUrl(id);
+        var w=window.open(u,'_blank');
+        if(!w){var a=document.createElement('a');a.href=u;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();}
+      }catch(e){alert('This file is not on this phone any more.');}
+    };
+    downloads={
+      save:async function(req){
+        var name=san(req.filename)||'percy-file',data=req.data;
+        var blob=data instanceof Blob?data:new Blob([data]);
+        var file=null;try{file=new File([blob],name,{type:blob.type||(/\.json$/.test(name)?'application/json':/\.csv$/.test(name)?'text/csv':'application/octet-stream')});}catch(e){}
+        if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
+          try{await navigator.share({files:[file],title:name});return {status:'saved'};}
+          catch(e){if(e&&e.name==='AbortError')throw {code:'declined'};}
+        }
+        var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
+        setTimeout(function(){URL.revokeObjectURL(u);},4000);
+        return {status:'saved',where:'your Downloads'};
+      }
+    };
+    if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){
+      window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
     }
-  };
+  }
+
   /* thumbnails: <img data-blob="id"> */
-  function hydrate(root){
-    var imgs=(root||document).querySelectorAll('img[data-blob]:not([src])');
-    Array.prototype.forEach.call(imgs,function(im){
-      var id=im.getAttribute('data-blob');
-      blobUrl(id).then(function(u){im.src=u;}).catch(function(){});
+  function hydrate(){
+    Array.prototype.forEach.call(document.querySelectorAll('img[data-blob]:not([src])'),function(im){
+      blobUrl(im.getAttribute('data-blob')).then(function(u){im.src=u;}).catch(function(){});
     });
   }
   document.addEventListener('DOMContentLoaded',function(){
     hydrate();
-    new MutationObserver(function(){hydrate();}).observe(document.body,{childList:true,subtree:true});
+    new MutationObserver(hydrate).observe(document.body,{childList:true,subtree:true});
   });
-  var downloads={
-    save:async function(req){
-      var data=req.data,isStr=typeof data==='string';
-      var payload=isStr?data:await b64(data instanceof Blob?data:new Blob([data]));
-      var rel='Percy/Backups/'+(san(req.filename)||'percy-file');
-      var dir=await writeTo(rel,payload,isStr?'utf8':undefined);
-      return {status:'saved',where:(dir==='DOCUMENTS'?'Documents':'the Percy app')+' › Percy › Backups'};
-    }
-  };
+
   /* reading confirmations: the user's own Anthropic API key */
   var MODEL='claude-sonnet-5-5';
   function parseJSONLoose(t){
@@ -342,7 +407,7 @@ input[type="checkbox"]{width:26px;height:26px;min-height:0;padding:0;accent-colo
   sample.limits=async function(){return {maxPromptBytes:262144,images:{maxCount:5,maxInputBytes:20971520,mediaTypes:['image/jpeg','image/png','image/webp','image/gif']}};};
   sample.json=async function(prompt,opts){
     opts=opts||{};
-    var key=''; try{key=(localStorage.getItem('percy.apikey')||'').trim();}catch(e){}
+    var key='';try{key=(localStorage.getItem('percy.apikey')||'').trim();}catch(e){}
     if(!key)throw {code:'no_key',message:'no api key'};
     var blobs=opts.images?(Array.isArray(opts.images)?opts.images:[opts.images]):[];
     var content=[];
@@ -890,7 +955,7 @@ function keyCardHTML(){
 }
 function viewData(){
   var h=moreBack('Backup & data');
-  var where=window.PERCY_NATIVE?'Your items are saved on this phone, inside the Percy app. Files you attach are saved in your phone’s Documents folder under Percy, in a folder for each trip. Export a backup before you uninstall the app or change phones.':S.mode==='cloud'?'Your items are saved in this app’s private storage on claude.ai and are visible only to you unless you share the artifact. Keep link sharing off, because this app can hold scans of identity documents.':'Your items are saved in this browser only. Open the app from your Claude artifacts while signed in to keep them in private storage.';
+  var where=window.PERCY_MODE==='native'?'Your items are saved on this phone, inside the Percy app. Files you attach are saved in your phone’s Documents folder under Percy, in a folder for each trip. Export a backup before you uninstall the app or change phones.':window.PERCY_MODE==='pwa'?'Your items and attached files are saved on this phone, inside Percy, with a folder for each trip under the Files tab of the trip. Open Percy from its Home Screen icon so the phone is less likely to clear it, and export a backup now and then. A backup holds your items but not the attached files.':S.mode==='cloud'?'Your items are saved in this app’s private storage on claude.ai and are visible only to you unless you share the artifact. Keep link sharing off, because this app can hold scans of identity documents.':'Your items are saved in this browser only. Open the app from your Claude artifacts while signed in to keep them in private storage.';
   h+='<div class="card"><p>'+esc(where)+'</p></div>';
   if(window.PERCY_NATIVE)h+=keyCardHTML();
   h+='<div class="card"><p><b>'+S.items.size+'</b> items saved. Files are stored separately; a backup holds the items and their file references, not the files themselves.</p></div>';

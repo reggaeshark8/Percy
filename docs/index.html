@@ -1,0 +1,1461 @@
+<!doctype html><html lang="en"><head><title>Percy</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0E5A5A"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Percy"><meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+@font-face{font-family:'Atkinson Hyperlegible';font-weight:400;font-style:normal;font-display:swap;src:url(fonts/atkinson-hyperlegible-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Atkinson Hyperlegible';font-weight:700;font-style:normal;font-display:swap;src:url(fonts/atkinson-hyperlegible-latin-700-normal.woff2) format('woff2')}
+/* Layout: one phone-width column of plain cards and rows, a labelled bottom tab bar, bottom sheets for forms.
+   Built for legibility: Atkinson Hyperlegible, 17px base, sentence-case labels, 3:1 control borders, 44px+ targets. */
+:root{
+  --bg:#F5F7F7;--surface:#FFFFFF;--surface-2:#EDF1F1;--ink:#14282A;--ink-2:#34494C;--muted:#516568;--line:#D5DDDD;--line-strong:#7B8F91;
+  --accent:#0E5A5A;--accent-ink:#FFFFFF;--accent-soft:#DDEDEC;
+  --hot:#A82216;--hot-soft:#FBE4E1;--warm:#80490A;--warm-soft:#FAEBCF;--good:#1F6B3F;--good-soft:#DCF0E3;
+  --c1:#0E5A5A;--c2:#C77D0A;--c3:#3F63B5;--c4:#B03F6B;--c5:#5F8F3F;--c6:#7656A6;--c7:#7C8E90;
+  --scrim:rgba(5,15,16,.55);
+  --shadow:0 2px 8px rgba(13,27,28,.18);
+  --f-body:'Atkinson Hyperlegible',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --f-display:var(--f-body);
+  --f-mono:var(--f-body);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#101A1B;--surface:#172426;--surface-2:#1E2F31;--ink:#EEF4F4;--ink-2:#CAD8D8;--muted:#A5B8B9;--line:#2F4346;--line-strong:#7F9597;
+    --accent:#6FD0C6;--accent-ink:#06201E;--accent-soft:#17383A;
+    --hot:#FF9A90;--hot-soft:#3D1A17;--warm:#F3C07A;--warm-soft:#35280F;--good:#86DBA6;--good-soft:#15331F;
+    --c1:#6FD0C6;--c2:#E7A93B;--c3:#7C9BE3;--c4:#E083A8;--c5:#93C46F;--c6:#B095DB;--c7:#8DA0A2;
+    --scrim:rgba(0,0,0,.65);--shadow:0 2px 8px rgba(0,0,0,.5);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101A1B;--surface:#172426;--surface-2:#1E2F31;--ink:#EEF4F4;--ink-2:#CAD8D8;--muted:#A5B8B9;--line:#2F4346;--line-strong:#7F9597;
+  --accent:#6FD0C6;--accent-ink:#06201E;--accent-soft:#17383A;
+  --hot:#FF9A90;--hot-soft:#3D1A17;--warm:#F3C07A;--warm-soft:#35280F;--good:#86DBA6;--good-soft:#15331F;
+  --c1:#6FD0C6;--c2:#E7A93B;--c3:#7C9BE3;--c4:#E083A8;--c5:#93C46F;--c6:#B095DB;--c7:#8DA0A2;
+  --scrim:rgba(0,0,0,.65);--shadow:0 2px 8px rgba(0,0,0,.5);
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html{font-size:100%}
+body{background:var(--bg);color:var(--ink);font:1.0625rem/1.5 var(--f-body);-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0;text-align:inherit}
+a{color:var(--accent)}
+h1,h2,h3,p{margin:0}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+::placeholder{color:var(--muted);opacity:1}
+
+.imp-src{display:flex;flex-direction:column;gap:10px}
+.imp-src h3{font:700 1rem var(--f-body);overflow-wrap:anywhere}
+.imp-card{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line-strong);border-radius:12px;padding:12px;background:var(--surface)}
+.imp-card input[type=checkbox]{width:24px;height:24px;margin-top:2px;flex:0 0 auto;accent-color:var(--accent)}
+.imp-card .imp-b{min-width:0;display:flex;flex-direction:column;gap:4px;flex:1}
+.imp-card .t{font-weight:700;overflow-wrap:anywhere}
+.imp-card .s{color:var(--ink-2);font-size:.9375rem;overflow-wrap:anywhere}
+.imp-card .row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.imp-working{display:flex;align-items:center;gap:12px;padding:12px;border:1px dashed var(--line-strong);border-radius:12px}
+.imp-dot{width:14px;height:14px;border-radius:50%;background:var(--accent);animation:impPulse 1s ease-in-out infinite alternate}
+@keyframes impPulse{from{opacity:.25}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.imp-dot{animation:none}}
+.imp-text{min-height:120px}
+.pick{position:relative;overflow:hidden}
+.pick input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0}
+.pick:focus-within{outline:3px solid var(--accent);outline-offset:2px}
+.pick-row{display:flex;gap:10px;flex-wrap:wrap}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.mono{font-variant-numeric:tabular-nums;letter-spacing:.03em}
+.ic{flex:none;display:block}
+
+.wrap{width:100%;max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--bg)}
+.top-in{display:flex;align-items:center;justify-content:space-between;min-height:56px}
+.brand{display:flex;align-items:baseline;gap:10px;font:700 1.375rem var(--f-body)}
+.brand small{font:400 .9375rem var(--f-body);color:var(--muted)}
+.icon-btn{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:var(--ink-2)}
+.icon-btn:hover{background:var(--surface-2)}
+main{padding-top:4px;padding-bottom:calc(120px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:16px}
+
+h1.page{font:700 1.875rem/1.2 var(--f-body);text-wrap:balance}
+.status{color:var(--ink-2);font-size:1.0625rem;margin-top:-8px}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}
+.sec-h h2{font:700 1.25rem/1.3 var(--f-body);color:var(--ink)}
+.back{display:inline-flex;align-items:center;gap:4px;color:var(--accent);font-weight:700;min-height:44px;align-self:flex-start}
+.note{font-size:.9375rem;color:var(--muted)}
+.banner{padding:12px 14px;border-radius:12px;font-size:1rem;background:var(--warm-soft);color:var(--warm)}
+.banner.err{background:var(--hot-soft);color:var(--hot)}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.board{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.brow{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px;border-top:1px solid var(--line);width:100%;cursor:pointer;min-height:64px}
+.brow:first-child{border-top:0}
+.brow:hover{background:var(--surface-2)}
+.ico{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.bmain{display:flex;flex-direction:column;min-width:0;gap:2px}
+.bmain b{font-weight:700;overflow-wrap:anywhere}
+.sub{font-size:.9375rem;color:var(--muted);overflow-wrap:anywhere}
+.when{display:flex;flex-direction:column;align-items:flex-end;gap:6px;text-align:right}
+.when b{font:700 .9375rem var(--f-body);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cnt{display:inline-block;min-width:64px;padding:4px 10px;border-radius:8px;font:700 .875rem var(--f-body);text-align:center;background:var(--surface-2);border:1px solid var(--line);color:var(--ink-2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.cnt.warm{background:var(--warm-soft);color:var(--warm);border-color:transparent}
+.cnt.hot,.cnt.late{background:var(--hot-soft);color:var(--hot);border-color:transparent}
+.pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.875rem;font-weight:700;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+.pill.good{background:var(--good-soft);color:var(--good);border-color:transparent}
+.pill.warm{background:var(--warm-soft);color:var(--warm);border-color:transparent}
+.pill.hot{background:var(--hot-soft);color:var(--hot);border-color:transparent}
+.clear{padding:16px;border-radius:14px;border:1px dashed var(--line-strong);color:var(--ink-2);font-size:1.0625rem}
+.group-h{font:700 1rem var(--f-body);color:var(--ink-2);margin:8px 2px -6px}
+
+.ticket{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;width:100%}
+.ticket[role="button"]{cursor:pointer}
+.ticket-main{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 200px}
+.ticket-main h3{font:700 1.5rem/1.25 var(--f-body);overflow-wrap:anywhere}
+.ticket-main .dates{font-size:1rem;color:var(--ink-2)}
+.ticket-stub{flex:none}
+.ticket-stub b{display:inline-block;padding:8px 14px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font:700 1.0625rem var(--f-body);font-variant-numeric:tabular-nums}
+
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;padding:8px 16px;min-height:44px;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface);font-weight:700;font-size:1rem;color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.seg{display:inline-grid;grid-auto-flow:column;gap:2px;padding:3px;background:var(--surface-2);border:1px solid var(--line-strong);border-radius:12px}
+.seg button{padding:8px 14px;min-height:42px;border-radius:9px;font-weight:700;font-size:1rem;color:var(--ink-2);text-align:center}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 18px;border-radius:12px;border:1px solid var(--line-strong);background:var(--surface);font-weight:700;text-align:center}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--hot)}
+.btn.small{min-height:44px;padding:0 14px;font-size:1rem;border-radius:10px}
+.btn[disabled]{opacity:.6;cursor:default}
+.fab{position:fixed;z-index:20;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(84px + env(safe-area-inset-bottom,0px));width:56px;height:56px;border-radius:16px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;box-shadow:var(--shadow)}
+
+.tabs{position:fixed;z-index:30;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line-strong);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tabs-in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));padding:6px max(16px,env(safe-area-inset-right,0px)) 6px max(16px,env(safe-area-inset-left,0px))}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;min-height:56px;border-radius:12px;font-size:.8125rem;font-weight:700;color:var(--ink-2);position:relative;text-align:center}
+.tab[aria-current="page"]{color:var(--accent)}
+.tab[aria-current="page"] .tab-i{background:var(--accent-soft)}
+.tab-i{width:48px;height:28px;border-radius:14px;display:grid;place-items:center}
+.badge{position:absolute;top:2px;right:calc(50% - 28px);min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--hot);color:#fff;font:700 .75rem/20px var(--f-body);text-align:center}
+
+.scrim{position:fixed;inset:0;z-index:50;background:var(--scrim);display:flex;align-items:flex-end;justify-content:center}
+.sheet{display:flex;flex-direction:column;width:100%;max-width:560px;max-height:92vh;max-height:92dvh;background:var(--surface);border-radius:18px 18px 0 0;overflow:hidden;box-shadow:var(--shadow)}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 8px 4px max(16px,env(safe-area-inset-left,0px))}
+.sheet-head h2{font:700 1.375rem var(--f-body)}
+.sheet form{display:flex;flex-direction:column;min-height:0;flex:1 1 auto}
+.sheet-body{overflow-y:auto;padding:8px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:16px;flex:1 1 auto;min-height:0}
+.sheet-foot{display:flex;gap:10px;padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));border-top:1px solid var(--line)}
+.sheet-foot:empty{display:none}
+.sheet-foot .btn{flex:1}
+
+.fld{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fld>label,.lbl{font-size:1rem;font-weight:700;color:var(--ink)}
+.req{font-weight:400;color:var(--muted)}
+.fld-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+input,select,textarea{font:1.0625rem var(--f-body);color:var(--ink);background:var(--surface-2);border:1px solid var(--line-strong);border-radius:10px;padding:0 12px;min-height:50px;width:100%;min-width:0}
+input[type="date"],input[type="time"]{min-height:50px}
+textarea{padding:12px;resize:vertical;line-height:1.45}
+input[type="checkbox"]{width:26px;height:26px;min-height:0;padding:0;accent-color:var(--accent)}
+.tog{display:flex;align-items:center;gap:12px;font-weight:700;color:var(--ink);min-height:48px}
+.files{display:flex;flex-direction:column;gap:8px}
+.file-row{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:12px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.thumb{width:48px;height:48px;border-radius:8px;background:var(--surface-2);display:grid;place-items:center;color:var(--muted);overflow:hidden}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.file-row a{font-weight:700;text-decoration:none;color:var(--ink);overflow-wrap:anywhere;font-size:1rem}
+.file-row .sub{display:block}
+.rm{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;color:var(--ink-2)}
+.rm:hover{background:var(--hot-soft);color:var(--hot)}
+
+.idcard{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;cursor:pointer}
+.idc-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.idc-cat{display:inline-flex;align-items:center;gap:6px;font:700 1rem var(--f-body);color:var(--accent)}
+.idcard h3{font:700 1.25rem/1.3 var(--f-body);overflow-wrap:anywhere}
+.idc-meta{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;font-size:1.0625rem;color:var(--ink-2)}
+.idc-foot{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;justify-content:space-between;font-size:.9375rem;color:var(--muted)}
+.reveal{display:inline-flex;align-items:center;gap:8px;font:700 1.0625rem var(--f-body);letter-spacing:.04em;color:var(--ink);min-height:44px}
+.ref{display:inline-flex;align-items:center;gap:6px;font:700 1rem var(--f-body);letter-spacing:.04em;padding:6px 12px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line-strong);color:var(--ink);min-height:40px;align-self:flex-start}
+.lnk{display:inline-flex;align-items:center;gap:5px;font-size:1rem;font-weight:700;color:var(--accent);text-decoration:none;padding:6px 0}
+
+.big{font:700 2.5rem/1.1 var(--f-body);font-variant-numeric:tabular-nums}
+.bar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--surface-2);border:1px solid var(--line)}
+.bar i{display:block;height:100%}
+.legend{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.legend div{display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:10px;align-items:center;font-size:1rem}
+.legend i{width:14px;height:14px;border-radius:4px;display:block}
+
+.calhead{display:flex;align-items:center;justify-content:space-between}
+.calhead h3{font:700 1.25rem var(--f-body)}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.dow{font:700 .875rem var(--f-body);color:var(--ink-2);text-align:center;padding:4px 0}
+.day{min-height:50px;border-radius:10px;border:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-weight:700;font-size:1.0625rem;font-variant-numeric:tabular-nums}
+.day.blank{border:0;background:none}
+.day.today{border:2px solid var(--accent);color:var(--accent)}
+.day.sel{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.dots{display:flex;gap:3px;height:6px}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--c1)}
+.day.sel .dots i{background:var(--accent-ink)}
+
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tile{display:flex;flex-direction:column;gap:10px;align-items:flex-start;padding:16px;border-radius:14px;background:var(--surface);border:1px solid var(--line);min-height:120px;text-align:left}
+.tile b{font:700 1.125rem var(--f-body)}
+.tile span.sub{margin-top:-6px}
+
+.chk{display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:4px;padding:2px 10px 2px 2px;border-top:1px solid var(--line);min-height:56px}
+.chk:first-child{border-top:0}
+.chk button.box{width:48px;height:48px;display:grid;place-items:center}
+.box i{width:26px;height:26px;border-radius:7px;border:2px solid var(--line-strong);display:grid;place-items:center;color:var(--accent-ink)}
+.chk.done .box i{background:var(--accent);border-color:var(--accent)}
+.chk.done .ttl{text-decoration:line-through;color:var(--muted)}
+.chk .ttl{display:flex;flex-direction:column;text-align:left;min-width:0;padding:8px 0}
+.chk .ttl span{overflow-wrap:anywhere}
+.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 16px;font-size:1.0625rem}
+.kv dt{color:var(--ink-2);font-size:1rem}
+.kv dd{margin:0;overflow-wrap:anywhere}
+.empty{padding:20px 18px;border:1px dashed var(--line-strong);border-radius:14px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
+.empty h3{font:700 1.25rem/1.3 var(--f-body)}
+.empty p{color:var(--ink-2);font-size:1.0625rem}
+.empty-a{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.addbar{display:flex;gap:8px}
+.addbar input{flex:1}
+.toast{position:fixed;z-index:80;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom,0px));max-width:min(92vw,420px);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:12px;font-size:1rem;font-weight:700;box-shadow:var(--shadow);text-align:center}
+.sk{height:64px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+@media (prefers-reduced-motion:no-preference){
+  .scrim{animation:fade .15s ease-out}
+  .sheet{animation:rise .2s ease-out}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes rise{from{transform:translateY(24px)}to{transform:none}}
+}
+</style>
+
+<header class="top"><div class="wrap top-in">
+  <div class="brand"><span>Percy</span><small id="todayLabel"></small></div>
+  <button class="icon-btn" data-act="search" aria-label="Search everything" id="searchBtn"></button>
+</div></header>
+<main id="main" class="wrap" aria-live="polite"><div class="sk"></div><div class="sk"></div><div class="sk"></div></main>
+<button class="fab" data-act="fab" id="fab" aria-label="Add something" hidden></button>
+<nav class="tabs" aria-label="Sections"><div class="tabs-in" id="tabs"></div></nav>
+<div class="scrim" id="scrim" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-head"><h2 id="sheetTitle"></h2><button class="icon-btn" type="button" data-act="closeSheet" aria-label="Close" id="closeBtn"></button></div>
+    <form id="sheetForm" autocomplete="off" novalidate>
+      <div class="sheet-body" id="sheetBody"></div>
+      <div class="sheet-foot" id="sheetFoot"></div>
+    </form>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+/* Percy standalone shim: gives the page the same "claude.use(...)" capabilities it had as an artifact.
+   Two modes:
+   - native (Capacitor Android app): files in Documents/Percy/<trip>/
+   - pwa (installed from the browser, iPhone or Android): files in the browser's own storage (IndexedDB)
+   Reading confirmations uses the user's own Anthropic API key in both. */
+(function(){
+  var C=window.Capacitor;
+  var NATIVE=!!(C&&C.isNativePlatform&&C.isNativePlatform());
+  window.PERCY_NATIVE=true;window.PERCY_MODE=NATIVE?'native':'pwa';
+  function san(s){return String(s||'').replace(/[\\\/:*?"<>|\u0000-\u001f]+/g,' ').replace(/\s+/g,' ').trim().slice(0,60);}
+  function rid(){var a=new Uint8Array(16);crypto.getRandomValues(a);return Array.prototype.map.call(a,function(b){return ('0'+b.toString(16)).slice(-2);}).join('');}
+  function b64(blob){return new Promise(function(res,rej){var r=new FileReader();r.onload=function(){res(String(r.result).split(',')[1]||'');};r.onerror=function(){rej(r.error);};r.readAsDataURL(blob);});}
+  function fromB64(d,type){var bin=atob(d),n=bin.length,u=new Uint8Array(n);for(var i=0;i<n;i++)u[i]=bin.charCodeAt(i);return new Blob([u],{type:type||'application/octet-stream'});}
+  var urlCache={},assets,downloads,blobUrl;
+  window.PercyNative={};
+
+  if(NATIVE){
+    var FS=C.registerPlugin('Filesystem'),Opener=C.registerPlugin('FileOpener');
+    var KEY='percy.files',idx={};
+    try{idx=JSON.parse(localStorage.getItem(KEY)||'{}')||{};}catch(e){idx={};}
+    var saveIdx=function(){try{localStorage.setItem(KEY,JSON.stringify(idx));}catch(e){}};
+    var permAsked=false;
+    var ensurePerm=async function(){if(permAsked)return;permAsked=true;try{await FS.requestPermissions();}catch(e){}};
+    var writeTo=async function(rel,data,enc){
+      await ensurePerm();
+      var dirs=['DOCUMENTS','DATA'],last=null;
+      for(var i=0;i<dirs.length;i++){
+        try{var o={path:rel,data:data,directory:dirs[i],recursive:true};if(enc)o.encoding=enc;await FS.writeFile(o);return dirs[i];}catch(e){last=e;}
+      }
+      throw last||new Error('write');
+    };
+    assets={
+      upload:async function(file,o){
+        o=o||{};
+        var folder=san(o.folder)||'Other',name=san(file.name)||'file';
+        var dot=name.lastIndexOf('.'),base=dot>0?name.slice(0,dot):name,ext=dot>0?name.slice(dot):'';
+        var used={};Object.keys(idx).forEach(function(k){used[idx[k].path]=1;});
+        var rel='Percy/'+folder+'/'+name,n=2;
+        while(used[rel]){rel='Percy/'+folder+'/'+base+' ('+n+')'+ext;n++;}
+        var data=await b64(file),dir;
+        try{dir=await writeTo(rel,data);}catch(e){throw {code:'quota_or_state',message:String(e&&e.message||e)};}
+        var id=rid(),type=o.type||file.type||'application/octet-stream';
+        idx[id]={dir:dir,path:rel,type:type};saveIdx();
+        return {id:id,contentType:type,sizeBytes:file.size};
+      },
+      delete:async function(id){
+        var m=idx[id];if(!m)return;
+        try{await FS.deleteFile({path:m.path,directory:m.dir});}catch(e){}
+        delete idx[id];saveIdx();
+      }
+    };
+    blobUrl=async function(id){
+      if(urlCache[id])return urlCache[id];
+      var m=idx[id];if(!m)throw new Error('missing');
+      var r=await FS.readFile({path:m.path,directory:m.dir});
+      return (urlCache[id]=URL.createObjectURL(fromB64(r.data,m.type)));
+    };
+    window.PercyNative.open=async function(id,type){
+      var m=idx[id];
+      if(!m){alert('This file is not on this phone any more.');return;}
+      try{
+        var u=await FS.getUri({path:m.path,directory:m.dir});
+        await Opener.open({filePath:u.uri,contentType:m.type||type||'application/pdf'});
+      }catch(e){
+        try{window.open(await blobUrl(id),'_blank');}catch(e2){alert('Could not open this file. Look for it in your Files app under Documents, Percy.');}
+      }
+    };
+    downloads={
+      save:async function(req){
+        var data=req.data,isStr=typeof data==='string';
+        var payload=isStr?data:await b64(data instanceof Blob?data:new Blob([data]));
+        var dir=await writeTo('Percy/Backups/'+(san(req.filename)||'percy-file'),payload,isStr?'utf8':undefined);
+        return {status:'saved',where:(dir==='DOCUMENTS'?'Documents':'the Percy app')+' › Percy › Backups'};
+      }
+    };
+  }else{
+    /* PWA: IndexedDB */
+    var dbp=null;
+    var idb=function(){
+      if(dbp)return dbp;
+      dbp=new Promise(function(res,rej){
+        var q=indexedDB.open('percy-files',1);
+        q.onupgradeneeded=function(){q.result.createObjectStore('f');};
+        q.onsuccess=function(){res(q.result);};
+        q.onerror=function(){dbp=null;rej(q.error);};
+      });
+      return dbp;
+    };
+    var tx=function(mode,fn){
+      return idb().then(function(db){return new Promise(function(res,rej){
+        var t=db.transaction('f',mode),r=fn(t.objectStore('f'));
+        t.oncomplete=function(){res(r&&r.result);};
+        t.onerror=t.onabort=function(){rej(t.error);};
+      });});
+    };
+    assets={
+      upload:async function(file,o){
+        o=o||{};
+        var id=rid(),type=o.type||file.type||'application/octet-stream';
+        try{await tx('readwrite',function(st){return st.put({blob:file.slice(0,file.size,type),name:file.name,type:type,folder:san(o.folder)||'Other'},id);});}
+        catch(e){throw {code:'quota_or_state',message:String(e&&e.message||e)};}
+        try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
+        return {id:id,contentType:type,sizeBytes:file.size};
+      },
+      delete:async function(id){try{await tx('readwrite',function(st){return st.delete(id);});}catch(e){}}
+    };
+    blobUrl=async function(id){
+      if(urlCache[id])return urlCache[id];
+      var rec=await tx('readonly',function(st){return st.get(id);});
+      if(!rec)throw new Error('missing');
+      return (urlCache[id]=URL.createObjectURL(rec.blob));
+    };
+    window.PercyNative.open=async function(id){
+      try{
+        var u=await blobUrl(id);
+        var w=window.open(u,'_blank');
+        if(!w){var a=document.createElement('a');a.href=u;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();}
+      }catch(e){alert('This file is not on this phone any more.');}
+    };
+    downloads={
+      save:async function(req){
+        var name=san(req.filename)||'percy-file',data=req.data;
+        var blob=data instanceof Blob?data:new Blob([data]);
+        var file=null;try{file=new File([blob],name,{type:blob.type||(/\.json$/.test(name)?'application/json':/\.csv$/.test(name)?'text/csv':'application/octet-stream')});}catch(e){}
+        if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
+          try{await navigator.share({files:[file],title:name});return {status:'saved'};}
+          catch(e){if(e&&e.name==='AbortError')throw {code:'declined'};}
+        }
+        var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();
+        setTimeout(function(){URL.revokeObjectURL(u);},4000);
+        return {status:'saved',where:'your Downloads'};
+      }
+    };
+    if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){
+      window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
+    }
+  }
+
+  /* thumbnails: <img data-blob="id"> */
+  function hydrate(){
+    Array.prototype.forEach.call(document.querySelectorAll('img[data-blob]:not([src])'),function(im){
+      blobUrl(im.getAttribute('data-blob')).then(function(u){im.src=u;}).catch(function(){});
+    });
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    hydrate();
+    new MutationObserver(hydrate).observe(document.body,{childList:true,subtree:true});
+  });
+
+  /* reading confirmations: the user's own Anthropic API key */
+  var MODEL='claude-sonnet-5-5';
+  function parseJSONLoose(t){
+    try{return JSON.parse(t);}catch(e){}
+    var m=t.match(/```(?:json)?\s*([\s\S]*?)```/);if(m){try{return JSON.parse(m[1]);}catch(e){}}
+    var a=t.search(/[\[{]/),z=Math.max(t.lastIndexOf(']'),t.lastIndexOf('}'));
+    if(a>=0&&z>a){try{return JSON.parse(t.slice(a,z+1));}catch(e){}}
+    throw {code:'invalid_json',message:'no JSON',text:t};
+  }
+  var sample=function(){return Promise.reject({code:'not_declared',message:'use sample.json'});};
+  sample.nativePdf=true;
+  sample.limits=async function(){return {maxPromptBytes:262144,images:{maxCount:5,maxInputBytes:20971520,mediaTypes:['image/jpeg','image/png','image/webp','image/gif']}};};
+  sample.json=async function(prompt,opts){
+    opts=opts||{};
+    var key='';try{key=(localStorage.getItem('percy.apikey')||'').trim();}catch(e){}
+    if(!key)throw {code:'no_key',message:'no api key'};
+    var blobs=opts.images?(Array.isArray(opts.images)?opts.images:[opts.images]):[];
+    var content=[];
+    for(var i=0;i<blobs.length;i++){
+      var b=blobs[i],t=b.type||'';
+      if(t==='application/pdf')content.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:await b64(b)}});
+      else content.push({type:'image',source:{type:'base64',media_type:/^image\/(jpeg|png|webp|gif)$/.test(t)?t:'image/jpeg',data:await b64(b)}});
+    }
+    content.push({type:'text',text:prompt+'\n\nReply with only the JSON value, no other text.'});
+    var resp;
+    try{
+      resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',signal:opts.signal,
+        headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({model:MODEL,max_tokens:4096,messages:[{role:'user',content:content}]})});
+    }catch(e){
+      if(e&&e.name==='AbortError')throw {code:'cancelled',message:'cancelled'};
+      throw {code:'offline',message:String(e&&e.message||e)};
+    }
+    if(resp.status===401||resp.status===403)throw {code:'bad_key',message:'status '+resp.status};
+    if(resp.status===429)throw {code:'rate_limited',message:'status 429'};
+    var j=null;try{j=await resp.json();}catch(e){}
+    if(!resp.ok)throw {code:'upstream_error',message:'status '+resp.status+(j&&j.error&&j.error.message?': '+j.error.message:'')};
+    var text=((j&&j.content)||[]).filter(function(c){return c.type==='text';}).map(function(c){return c.text;}).join('\n');
+    if(!text.trim())throw {code:'empty_completion',message:'empty'};
+    return parseJSONLoose(text);
+  };
+  var table={assets:assets,downloads:downloads,sample:sample};
+  window.claude={use:function(n){return Promise.resolve(table[n]||null);}};
+})();
+
+</script>
+<script>
+(function(){
+'use strict';
+/*PURE-START*/
+var MS=864e5;
+function pd(s){if(!s||typeof s!=='string')return null;var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s);if(!m)return null;return new Date(+m[1],+m[2]-1,+m[3],12);}
+function ymd(d){var p=function(n){return String(n).padStart(2,'0');};return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
+function today(){var n=new Date();return new Date(n.getFullYear(),n.getMonth(),n.getDate(),12);}
+function diffDays(a,b){return Math.round((a-b)/MS);}
+function addDays(d,n){var r=new Date(d.getTime());r.setDate(r.getDate()+n);return r;}
+function addMonths(d,n){var t=new Date(d.getFullYear(),d.getMonth()+n,1,12);var dim=new Date(t.getFullYear(),t.getMonth()+1,0).getDate();t.setDate(Math.min(d.getDate(),dim));return t;}
+var FREQ={weekly:{label:'Weekly',pm:52/12,days:7},fortnightly:{label:'Fortnightly',pm:26/12,days:14},monthly:{label:'Monthly',pm:1,months:1},quarterly:{label:'Quarterly',pm:1/3,months:3},yearly:{label:'Yearly',pm:1/12,months:12},once:{label:'One-off',pm:0}};
+function occ(anchor,freq,k){var f=FREQ[freq];if(!f||freq==='once')return k===0?anchor:null;return f.days?addDays(anchor,f.days*k):addMonths(anchor,f.months*k);}
+function firstK(anchor,freq,from){var f=FREQ[freq];if(!f||freq==='once')return 0;var k;if(f.days){k=Math.ceil(diffDays(from,anchor)/f.days);}else{var md=(from.getFullYear()-anchor.getFullYear())*12+(from.getMonth()-anchor.getMonth());k=Math.floor(md/f.months)-1;}k=Math.max(0,k);var g=0;while(occ(anchor,freq,k)<from&&g++<2000)k++;return k;}
+function nextOcc(anchor,freq,from){if(!FREQ[freq]||freq==='once')return anchor;return occ(anchor,freq,firstK(anchor,freq,from));}
+function occRange(anchor,freq,start,end){var out=[];if(!FREQ[freq]||freq==='once'){if(anchor>=start&&anchor<=end)out.push(anchor);return out;}var k=firstK(anchor,freq,start),g=0;for(;;){var o=occ(anchor,freq,k);if(!o||o>end||g++>400)break;out.push(o);k++;}return out;}
+function monthlyOf(p){var f=FREQ[p.freq||'monthly'];return (Number(p.amount)||0)*(f?f.pm:0);}
+function fyOf(d){var y=d.getFullYear();return d.getMonth()>=6?y:y-1;}
+function fyLabel(y){return 'FY '+y+'–'+String((y+1)%100).padStart(2,'0');}
+function tone(n,lead){if(n<0)return 'late';if(n<=14)return 'hot';if(n<=lead)return 'warm';return 'calm';}
+function compact(n){if(n===1)return '1 day';if(n<=99)return n+' days';if(n<730){var m=Math.round(n/30.44);return m+(m===1?' month':' months');}return (n/365.25).toFixed(1)+' years';}
+var AUD=new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'});
+function money(n){if(n==null||n==='')return '';var v=Number(n);if(!isFinite(v))return '';var s=AUD.format(v);return Number.isInteger(v)?s.replace(/\.00$/,''):s;}
+function fmtTime(t){if(!t)return '';var m=/^(\d{1,2}):(\d{2})/.exec(t);if(!m)return t;var h=+m[1],x=h>=12?'pm':'am';h=h%12||12;return h+':'+m[2]+' '+x;}
+var DF={short:new Intl.DateTimeFormat('en-AU',{day:'numeric',month:'short'}),med:new Intl.DateTimeFormat('en-AU',{day:'numeric',month:'short',year:'numeric'}),long:new Intl.DateTimeFormat('en-AU',{weekday:'short',day:'numeric',month:'short'}),month:new Intl.DateTimeFormat('en-AU',{month:'long',year:'numeric'})};
+function fd(d,k){return d?DF[k||'med'].format(d):'';}
+/*PURE-END*/
+
+var $=function(s,r){return (r||document).querySelector(s);};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+var gid=function(k){return k+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);};
+
+var ICONS={
+  calendar:'<rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/>',
+  plane:'<path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/>',
+  shield:'<path d="M12 3 4.5 6v5.5c0 4.6 3.1 8 7.5 9.5 4.4-1.5 7.5-4.9 7.5-9.5V6z"/><path d="m9 12 2.2 2.2L15 10.4"/>',
+  card:'<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h3"/>',
+  house:'<path d="M3.5 11 12 4l8.5 7v8.5a1 1 0 0 1-1 1H15v-6H9v6H4.5a1 1 0 0 1-1-1z"/>',
+  more:'<circle cx="5.5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18.5" cy="12" r="1.4"/>',
+  bed:'<path d="M3 18.5V6.5M3 14.5h18v4M21 14.5v-2a3 3 0 0 0-3-3h-7v5"/><circle cx="7" cy="11.5" r="1.8"/>',
+  car:'<path d="M5 16.5 6.6 11A2 2 0 0 1 8.5 9.5h7a2 2 0 0 1 1.9 1.5L19 16.5M3.5 16.5h17v3h-17zM7 19.5V21M17 19.5V21"/>',
+  ticket:'<path d="M3 8.5a2.5 2.5 0 0 1 0 5V17h18v-3.5a2.5 2.5 0 0 1 0-5V6H3z"/><path d="M14 6v11" stroke-dasharray="2 2"/>',
+  doc:'<path d="M6.5 3h7.5l4 4v14H6.5z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  back:'<path d="m15 5-7 7 7 7"/>',
+  next:'<path d="m9 5 7 7-7 7"/>',
+  clip:'<path d="m20 11.5-8 8a5 5 0 0 1-7-7l8.5-8.5a3.3 3.3 0 0 1 5 5L10 17.5a1.7 1.7 0 0 1-2.5-2.5l7.5-7.5"/>',
+  trash:'<path d="M4 7h16M9.5 7V4h5v3M6.5 7l1 13h9l1-13"/>',
+  check:'<path d="m5 12.5 4.5 4.5L19 7"/>',
+  x:'<path d="M6 6l12 12M18 6 6 18"/>',
+  receipt:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  search:'<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
+  repeat:'<path d="m17 2.5 3 3-3 3"/><path d="M20 5.5H8A5 5 0 0 0 3 10.5"/><path d="m7 21.5-3-3 3-3"/><path d="M4 18.5h12a5 5 0 0 0 5-5"/>',
+  bolt:'<path d="M13 2.5 5 13.5h6l-1 8 8-11h-6z"/>',
+  wrench:'<path d="M14 7a4 4 0 0 1 5 5l-9.5 9.5a2.1 2.1 0 0 1-3-3L16 9"/>',
+  copy:'<rect x="8.5" y="8.5" width="12" height="12" rx="2"/><path d="M15.5 8.5V5.5a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3"/>',
+  eye:'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>',
+  phone:'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+  id:'<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M6.5 16c.6-1.6 1.6-2.2 2.5-2.2s1.9.6 2.5 2.2M14 10h4M14 13.5h4"/>',
+  book:'<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="10.5" r="3"/><path d="M9 17h6"/>',
+  umbrella:'<path d="M3 12a9 9 0 0 1 18 0z"/><path d="M12 12v6.5a1.7 1.7 0 0 1-3.4 0"/>',
+  cross:'<rect x="3.5" y="3.5" width="17" height="17" rx="3"/><path d="M12 8v8M8 12h8"/>',
+  download:'<path d="M12 4v11M7.5 11 12 15.5 16.5 11M5 20h14"/>',
+  upload:'<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 20h14"/>',
+  folder:'<path d="M3 7.5a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  pin:'<path d="M12 21s-6.5-5.7-6.5-11a6.5 6.5 0 0 1 13 0c0 5.3-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>'
+};
+function ic(n,s){s=s||20;return '<svg class="ic" width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[n]||ICONS.doc)+'</svg>';}
+
+var DOC_CATS={passport:{label:'Passport',ico:'book',lead:180},licence:{label:'Licence',ico:'id',lead:60},visa:{label:'Visa / ETA',ico:'plane',lead:60},card:{label:'Cards',ico:'card',lead:30},insurance:{label:'Insurance',ico:'umbrella',lead:45},other:{label:'Other',ico:'doc',lead:30}};
+var BTYPES={flight:{label:'Flight',ico:'plane'},stay:{label:'Stay',ico:'bed'},transport:{label:'Transport',ico:'car'},activity:{label:'Activity',ico:'ticket'},insurance:{label:'Insurance',ico:'umbrella'},other:{label:'Other',ico:'doc'}};
+var PAY_CATS={rent:{label:'Rent',ico:'house',c:'--c1'},utilities:{label:'Utilities',ico:'bolt',c:'--c2'},subs:{label:'Subscriptions',ico:'repeat',c:'--c3'},insurance:{label:'Insurance',ico:'umbrella',c:'--c4'},vehicle:{label:'Vehicle',ico:'car',c:'--c5'},phone:{label:'Phone & internet',ico:'phone',c:'--c6'},other:{label:'Other',ico:'card',c:'--c7'}};
+var VEH_CATS={rego:'Registration',insurance:'Insurance / CTP',service:'Service',other:'Other'};
+var EM_GROUPS={contacts:'Contacts',accounts:'Accounts & policies',where:'Where things are',other:'Other'};
+var KIND_LABEL={trip:'Trip',booking:'Booking',doc:'Document',pay:'Payment',lease:'Lease',util:'Utility',ltask:'Lease task',ttask:'Trip task',maint:'Maintenance',vehicle:'Vehicle',receipt:'Receipt',emerg:'Emergency'};
+var KIND_ICO={trip:'plane',booking:'ticket',doc:'shield',pay:'card',lease:'house',util:'bolt',ltask:'check',ttask:'check',maint:'wrench',vehicle:'car',receipt:'receipt',emerg:'cross'};
+var REMIND=[['','Default for this type'],['14','2 weeks before'],['30','1 month before'],['60','2 months before'],['90','3 months before'],['180','6 months before'],['270','9 months before']];
+var opts=function(o){return Object.keys(o).map(function(k){return [k,typeof o[k]==='string'?o[k]:o[k].label];});};
+
+var FORMS={
+  trip:{label:'trip',fields:[
+    {k:'name',l:'Trip name',t:'text',req:1,ph:'e.g. Sri Lanka'},
+    {k:'dest',l:'Destination',t:'text',ph:'Country or city'},
+    {k:'start',l:'Starts',t:'date',req:1,half:1},{k:'end',l:'Ends',t:'date',req:1,half:1},
+    {k:'notes',l:'Notes',t:'area'}]},
+  booking:{label:'booking',def:function(){return {type:'flight'};},fields:[
+    {k:'type',l:'Type',t:'select',opts:opts(BTYPES)},
+    {k:'title',l:'Title',t:'text',req:1,ph:'Hotel name, flight number, tour'},
+    {k:'date',l:'Date',t:'date',half:1},{k:'time',l:'Time',t:'time',half:1},
+    {k:'endDate',l:'End date (check-out, return)',t:'date'},
+    {k:'where',l:'Where / route',t:'text',ph:'Address, or BNE → CMB'},
+    {k:'ref',l:'Confirmation number',t:'text',mono:1},
+    {k:'notes',l:'Notes',t:'area'},
+    {k:'files',t:'files'}]},
+  doc:{label:'document',def:function(){return {cat:'passport'};},fields:[
+    {k:'cat',l:'Type',t:'select',opts:opts(DOC_CATS)},
+    {k:'title',l:'Name',t:'text',req:1,ph:'e.g. Australian passport'},
+    {k:'holder',l:'Whose',t:'text',ph:'Name on the document'},
+    {k:'number',l:'Number (optional)',t:'text',mono:1},
+    {k:'expiry',l:'Expires',t:'date',half:1},{k:'remind',l:'Remind me',t:'select',opts:REMIND,half:1},
+    {k:'notes',l:'Notes',t:'area'},
+    {k:'files',t:'files'}]},
+  pay:{label:'payment',def:function(){return {cat:'subs',freq:'monthly'};},fields:[
+    {k:'name',l:'What is it',t:'text',req:1,ph:'e.g. Rent, Netflix, car insurance'},
+    {k:'cat',l:'Category',t:'select',opts:opts(PAY_CATS)},
+    {k:'amount',l:'Amount (AUD)',t:'number',half:1,ph:'0.00'},{k:'freq',l:'How often',t:'select',opts:Object.keys(FREQ).map(function(k){return [k,FREQ[k].label];}),half:1},
+    {k:'date',l:'Next due date',t:'date',req:1},
+    {k:'trialEnd',l:'Free trial ends (optional)',t:'date'},
+    {k:'notes',l:'Notes',t:'area'}]},
+  lease:{label:'lease',fields:[
+    {k:'place',l:'Property',t:'text',ph:'Address or nickname'},
+    {k:'start',l:'Lease starts',t:'date',half:1},{k:'end',l:'Lease ends',t:'date',req:1,half:1},
+    {k:'bond',l:'Bond (AUD)',t:'number'},
+    {k:'manager',l:'Property manager',t:'text'},
+    {k:'contact',l:'Phone or email',t:'text'},
+    {k:'notes',l:'Notes',t:'area'},
+    {k:'files',t:'files'}]},
+  util:{label:'utility',def:function(){return {type:'Electricity'};},fields:[
+    {k:'provider',l:'Provider',t:'text',req:1},
+    {k:'type',l:'Type',t:'select',opts:['Electricity','Gas','Water','Internet','Phone','Other'].map(function(x){return [x,x];})},
+    {k:'account',l:'Account number',t:'text',mono:1},
+    {k:'notes',l:'Notes (no passwords)',t:'area'}]},
+  ltask:{label:'task',def:function(){return {offset:14};},fields:[
+    {k:'title',l:'Task',t:'text',req:1},
+    {k:'offset',l:'Days before lease ends',t:'number',ph:'e.g. 14'}]},
+  ttask:{label:'task',fields:[
+    {k:'title',l:'Task',t:'text',req:1},
+    {k:'date',l:'Due date (optional)',t:'date'}]},
+  maint:{label:'request',def:function(){return {status:'open',date:ymd(today())};},fields:[
+    {k:'title',l:'What needs fixing',t:'text',req:1},
+    {k:'date',l:'Reported',t:'date',half:1},{k:'status',l:'Status',t:'select',opts:[['open','Open'],['resolved','Resolved']],half:1},
+    {k:'notes',l:'Notes and replies',t:'area'},
+    {k:'files',t:'files'}]},
+  vehicle:{label:'reminder',def:function(){return {cat:'rego'};},fields:[
+    {k:'vehicle',l:'Vehicle',t:'text',ph:'e.g. Corolla'},
+    {k:'cat',l:'What is due',t:'select',opts:opts(VEH_CATS)},
+    {k:'date',l:'Due date',t:'date',req:1,half:1},{k:'remind',l:'Remind me',t:'select',opts:REMIND,half:1},
+    {k:'notes',l:'Notes',t:'area'},
+    {k:'files',t:'files'}]},
+  receipt:{label:'receipt',def:function(){return {date:ymd(today())};},fields:[
+    {k:'title',l:'Item',t:'text',req:1},
+    {k:'store',l:'Store',t:'text'},
+    {k:'date',l:'Purchased',t:'date',half:1},{k:'amount',l:'Price (AUD)',t:'number',half:1},
+    {k:'warrantyEnd',l:'Warranty ends',t:'date'},
+    {k:'tax',l:'Tax deductible',t:'toggle'},
+    {k:'taxNote',l:'Tax note',t:'text',ph:'Work expense, donation…'},
+    {k:'notes',l:'Notes',t:'area'},
+    {k:'files',t:'files'}]},
+  emerg:{label:'entry',def:function(){return {group:'contacts'};},fields:[
+    {k:'group',l:'Group',t:'select',opts:opts(EM_GROUPS)},
+    {k:'label',l:'Label',t:'text',req:1,ph:'e.g. Bank hotline, Policy number'},
+    {k:'value',l:'Details',t:'text',mono:1},
+    {k:'notes',l:'Notes (no passwords)',t:'area'}]}
+};
+
+var LEASE_STARTER=[
+  ['Check the notice period in your lease and give written notice',60],
+  ['Book professional cleaning (and carpet cleaning if required)',21],
+  ['Arrange utilities: transfer or disconnect',14],
+  ['Redirect mail and update your address with banks, licence and insurers',14],
+  ['Patch wall holes, replace blown bulbs, fix minor damage',14],
+  ['Take dated photos of every room, cupboard and appliance',3],
+  ['Final inspection and return of all keys and remotes',0],
+  ['Follow up the bond refund',-7]
+];
+var TRIP_STARTER=[
+  'Check entry requirements and passport validity for your destination',
+  'Confirm travel insurance covers the whole trip',
+  'Sort phone roaming or an eSIM',
+  'Download offline maps',
+  'Save every confirmation to this trip',
+  'Arrange airport transport'
+];
+
+/* ---------- state + store ---------- */
+var S={ready:false,mode:'loading',items:new Map(),tab:'today',trip:null,tripTab:'plan',vaultCat:'all',moneyView:'list',range:90,calY:0,calM:0,calSel:null,more:null,taxFY:null,recFilter:'all',err:'',reveal:new Set(),form:null,sheetMode:null};
+var caps={db:null,assets:null,downloads:null,sample:null,imgOK:false};
+var LS_KEY='lap.items.v1';
+
+function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+
+var Store={
+  col:null,local:false,
+  async init(){
+    var w=window.claude;
+    var pdb=w&&w.use?w.use('db').catch(function(){return null;}):Promise.resolve(null);
+    var pas=w&&w.use?w.use('assets').catch(function(){return null;}):Promise.resolve(null);
+    var pdl=w&&w.use?w.use('downloads').catch(function(){return null;}):Promise.resolve(null);
+    var psm=w&&w.use?w.use('sample').catch(function(){return null;}):Promise.resolve(null);
+    var db=await pdb;
+    if(db){
+      caps.db=db;this.col=db.collection('items');
+      this.col.onSnapshot(function(snap){
+        var m=new Map();
+        snap.docs.forEach(function(d){if(d.exists)m.set(d.id,Object.assign({},d.data()));});
+        S.items=m;S.ready=true;S.mode='cloud';S.err='';renderAll();
+      },function(err){S.err='Live sync stopped ('+((err&&err.code)||'error')+'). Reload to reconnect.';renderAll();});
+    }else{
+      this.local=true;
+      try{var raw=lsGet(LS_KEY);if(raw){var o=JSON.parse(raw);S.items=new Map(Object.keys(o).map(function(k){return [k,o[k]];}));}}catch(e){}
+      S.ready=true;S.mode='local';renderAll();
+    }
+    caps.assets=await pas;caps.downloads=await pdl;
+    caps.sample=await psm;
+    if(caps.sample&&caps.sample.limits){try{var lim=await caps.sample.limits();caps.imgOK=!!(lim&&lim.images);}catch(e){caps.imgOK=false;}}
+    renderAll();
+  },
+  persist(){var o={};S.items.forEach(function(v,k){o[k]=v;});lsSet(LS_KEY,JSON.stringify(o));},
+  async save(id,obj){
+    var clean={};Object.keys(obj).forEach(function(k){var v=obj[k];if(v===''||v==null||(Array.isArray(v)&&!v.length))return;clean[k]=v;});
+    S.items.set(id,clean);
+    if(this.local)this.persist();else await this.col.doc(id).set(clean);
+    renderAll();
+  },
+  async del(id){
+    S.items.delete(id);
+    if(this.local)this.persist();else await this.col.doc(id).delete();
+    renderAll();
+  }
+};
+function list(k){var out=[];S.items.forEach(function(d,id){if(d.kind===k)out.push(Object.assign({},d,{id:id}));});return out;}
+function nameOf(d){return d.name||d.title||d.provider||d.label||d.place||'Untitled';}
+
+/* ---------- events (everything with a date) ---------- */
+function mkEv(o){var T=today();var n=o.date?diffDays(o.date,T):null;return Object.assign({},o,{n:n,tone:n==null?'calm':tone(n,o.lead||0)});}
+function buildEvents(){
+  var T=today(),ev=[];
+  function push(o){if(!o.date)return;var e=mkEv(o);if(e.n<0&&!o.late)return;ev.push(e);}
+  var trips={};list('trip').forEach(function(t){trips[t.id]=t;});
+  list('trip').forEach(function(t){push({ico:'plane',title:t.name,sub:'Trip starts'+(t.dest?' · '+t.dest:''),date:pd(t.start),lead:45,trip:t.id});});
+  list('booking').forEach(function(b){var t=trips[b.tripId],bt=BTYPES[b.type]||BTYPES.other;push({ico:bt.ico,title:b.title,sub:bt.label+(t?' · '+t.name:''),date:pd(b.date),lead:7,open:['booking',b.id]});});
+  list('ttask').filter(function(t){return !t.done&&t.date;}).forEach(function(t){var tr=trips[t.tripId];push({ico:'check',title:t.title,sub:'Trip task'+(tr?' · '+tr.name:''),date:pd(t.date),lead:7,late:true,lateWord:'Overdue',open:['ttask',t.id]});});
+  list('doc').forEach(function(d){var c=DOC_CATS[d.cat]||DOC_CATS.other;var lead=d.remind!=null&&d.remind!==''?Number(d.remind):c.lead;push({ico:c.ico,title:d.title+' expires',sub:[c.label,d.holder].filter(Boolean).join(' · '),date:pd(d.expiry),lead:lead,late:true,lateWord:'Expired',open:['doc',d.id]});});
+  list('pay').forEach(function(p){
+    var a=pd(p.date);if(!a)return;var c=PAY_CATS[p.cat]||PAY_CATS.other;var f=p.freq||'monthly';
+    push({ico:c.ico,title:p.name,sub:[c.label,(FREQ[f]||{}).label,money(p.amount)].filter(Boolean).join(' · '),date:nextOcc(a,f,T),lead:3,late:true,lateWord:'Overdue',open:['pay',p.id]});
+    if(p.trialEnd)push({ico:'alert',title:p.name+' free trial ends',sub:'Cancel before it bills',date:pd(p.trialEnd),lead:7,open:['pay',p.id]});
+  });
+  var lease=list('lease')[0];
+  if(lease&&pd(lease.end)){
+    push({ico:'house',title:'Lease ends',sub:lease.place||'Your rental',date:pd(lease.end),lead:90,tab:'home'});
+    list('ltask').filter(function(t){return !t.done;}).forEach(function(t){push({ico:'check',title:t.title,sub:'End of lease',date:addDays(pd(lease.end),-(Number(t.offset)||0)),lead:14,late:true,lateWord:'Overdue',open:['ltask',t.id]});});
+  }
+  list('vehicle').forEach(function(v){var lead=v.remind!=null&&v.remind!==''?Number(v.remind):30;push({ico:'car',title:(VEH_CATS[v.cat]||'Reminder')+(v.vehicle?' · '+v.vehicle:''),sub:'Vehicle',date:pd(v.date),lead:lead,late:true,lateWord:'Overdue',open:['vehicle',v.id]});});
+  list('receipt').forEach(function(r){push({ico:'receipt',title:r.title+' warranty ends',sub:r.store||'Receipt',date:pd(r.warrantyEnd),lead:30,open:['receipt',r.id]});});
+  ev.sort(function(a,b){return a.date-b.date||String(a.title).localeCompare(String(b.title));});
+  return ev;
+}
+function cntText(e){return e.n<0?(e.lateWord||'Overdue'):(e.n===0?'Today':compact(e.n));}
+function evRow(e){
+  var go=e.open?'data-open="'+e.open[0]+':'+e.open[1]+'"':(e.trip?'data-go="trips" data-trip="'+e.trip+'"':'data-go="'+(e.tab||'today')+'"');
+  return '<div class="brow" role="button" tabindex="0" '+go+'><span class="ico">'+ic(e.ico)+'</span><span class="bmain"><b>'+esc(e.title)+'</b><span class="sub">'+esc(e.sub||'')+'</span></span><span class="when"><b>'+esc(fd(e.date,'short'))+'</b><span class="cnt '+e.tone+'">'+esc(cntText(e))+'</span></span></div>';
+}
+
+/* ---------- small view helpers ---------- */
+function sec(title,right){return '<div class="sec-h"><h2>'+esc(title)+'</h2>'+(right||'')+'</div>';}
+function addBtn(kind,label,preset){return '<button class="btn small" type="button" data-act="add" data-kind="'+kind+'"'+(preset?' data-preset="'+esc(JSON.stringify(preset))+'"':'')+'>'+ic('plus',16)+esc(label)+'</button>';}
+function empty(title,text,actions){return '<div class="empty"><h3>'+esc(title)+'</h3><p>'+esc(text)+'</p>'+(actions?'<div class="empty-a">'+actions+'</div>':'')+'</div>';}
+function chips(items,cur,act){return '<div class="chips">'+items.map(function(i){return '<button class="chip" type="button" data-act="'+act+'" data-v="'+esc(i[0])+'" aria-pressed="'+(cur===i[0])+'">'+esc(i[1])+'</button>';}).join('')+'</div>';}
+function fileCount(d){return d.files&&d.files.length?'<span class="lnk">'+ic('clip',14)+d.files.length+'</span>':'';}
+function nextTrip(){var T=today();return list('trip').map(function(t){return {t:t,s:pd(t.start),e:pd(t.end)};}).filter(function(x){return x.s&&x.e&&x.e>=T;}).sort(function(a,b){return a.s-b.s;}).map(function(x){return x.t;})[0];}
+function ticketHTML(t,link){
+  if(link===undefined)link=true;
+  var T=today(),s=pd(t.start),e=pd(t.end);if(!s||!e)return '';
+  var total=diffDays(e,s)+1,status;
+  if(T<s){var n=diffDays(s,T);status=n===1?'Starts tomorrow':n+' days to go';}
+  else if(T<=e){status='Day '+(diffDays(T,s)+1)+' of '+total;}
+  else{status='Finished';}
+  var count=list('booking').filter(function(b){return b.tripId===t.id;}).length;
+  return '<div class="ticket"'+(link?' role="button" tabindex="0" data-go="trips" data-trip="'+t.id+'"':'')+'><div class="ticket-main"><h3>'+esc(t.name)+'</h3>'+(t.dest?'<span class="sub">'+esc(t.dest)+'</span>':'')+'<span class="dates">'+esc(fd(s,'short'))+' to '+esc(fd(e,'med'))+' · '+total+' days · '+count+' plan'+(count===1?'':'s')+'</span></div><div class="ticket-stub"><b>'+esc(status)+'</b></div></div>';
+}
+function fileThumb(f){
+  var img=/^image\//.test(f.type||'');
+  return '<span class="thumb">'+(img?'<img '+(window.PERCY_NATIVE?'data-blob="':'src="/_blob/')+esc(f.id)+'" alt="" loading="lazy">':ic('doc',20))+'</span>';
+}
+function bytes(n){if(!n)return '';if(n<1024)return n+' B';if(n<1048576)return Math.round(n/1024)+' KB';return (n/1048576).toFixed(1)+' MB';}
+
+/* ---------- views ---------- */
+function viewToday(){
+  var ev=buildEvents();
+  var att=ev.filter(function(e){return e.n<=e.lead;});
+  var up=ev.filter(function(e){return e.n>e.lead&&e.n<=S.range;});
+  var monthly=list('pay').reduce(function(s,p){return s+monthlyOf(p);},0);
+  var h='<h1 class="page">Today</h1>';
+  if(!S.items.size){
+    return h+'<p class="status">Everything with a date, a document or a reminder, in one place.</p>'+
+      empty('Start with what you will need first','Add a trip to keep every confirmation together, a passport or licence to watch its expiry, or a payment to see what leaves your account each month.',
+        addBtn('trip','Trip')+addBtn('doc','Document')+addBtn('pay','Payment')+'<button class="btn small" type="button" data-act="go" data-v="home">'+ic('house',16)+'Set up your lease</button>');
+  }
+  h+='<p class="status">'+(att.length?att.length+' need'+(att.length===1?'s':'')+' attention':'Nothing urgent')+(monthly>0?' · '+esc(money(Math.round(monthly)))+' a month in recurring costs':'')+'</p>';
+  var trip=nextTrip();if(trip)h+=ticketHTML(trip);
+  h+=sec('Needs attention')+(att.length?'<div class="board">'+att.map(evRow).join('')+'</div>':'<div class="clear">Nothing is due soon. Your passport, payments and lease are all outside their reminder windows.</div>');
+  h+=sec('Coming up','<div class="seg" role="group" aria-label="How far ahead">'+[[30,'30 days'],[90,'90 days'],[365,'A year']].map(function(r){return '<button type="button" data-act="range" data-v="'+r[0]+'" aria-pressed="'+(S.range===r[0])+'">'+r[1]+'</button>';}).join('')+'</div>');
+  h+=up.length?'<div class="board">'+up.map(evRow).join('')+'</div>':'<div class="clear">No dated items in this window.</div>';
+  return h;
+}
+
+function viewTrips(){
+  if(S.trip&&S.items.get(S.trip))return viewTripDetail(S.items.get(S.trip),S.trip);
+  S.trip=null;
+  var T=today();
+  var all=list('trip').sort(function(a,b){return String(a.start).localeCompare(String(b.start));});
+  var up=all.filter(function(t){var e=pd(t.end);return !e||e>=T;});
+  var past=all.filter(function(t){var e=pd(t.end);return e&&e<T;}).reverse();
+  var h='<h1 class="page">Trips</h1>'+'<div>'+addBtn('trip','New trip')+'</div>';
+  if(!all.length)return h+empty('No trips yet','Make a folder per trip. Add flights, stays and bookings, and attach as many confirmations as you like. There is no three-document limit.',addBtn('trip','New trip'));
+  h+=up.length?up.map(function(t){return ticketHTML(t);}).join(''):'<div class="clear">No upcoming trips.</div>';
+  if(past.length)h+=sec('Past trips')+past.map(function(t){return ticketHTML(t);}).join('');
+  return h;
+}
+function bookingRow(b){
+  var bt=BTYPES[b.type]||BTYPES.other,bits=[];
+  if(b.time)bits.push(fmtTime(b.time));
+  if(b.where)bits.push(b.where);
+  var s=pd(b.date),e=pd(b.endDate);
+  if(s&&e&&e>s)bits.push(b.type==='stay'?diffDays(e,s)+' night'+(diffDays(e,s)===1?'':'s')+' · out '+fd(e,'short'):'to '+fd(e,'short'));
+  return '<div class="brow" role="button" tabindex="0" data-open="booking:'+b.id+'" style="grid-template-columns:40px minmax(0,1fr) auto"><span class="ico">'+ic(bt.ico)+'</span><span class="bmain"><b>'+esc(b.title)+'</b>'+(bits.length?'<span class="sub">'+esc(bits.join(' · '))+'</span>':'')+(b.ref?'<span class="ref" role="button" tabindex="0" data-act="copy" data-v="'+esc(b.ref)+'" aria-label="Copy confirmation number">'+esc(b.ref)+ic('copy',14)+'</span>':'')+'</span><span class="when">'+fileCount(b)+'</span></div>';
+}
+function viewTripDetail(t,id){
+  var s=pd(t.start),e=pd(t.end);
+  var bs=list('booking').filter(function(b){return b.tripId===id;});
+  var tasks=list('ttask').filter(function(x){return x.tripId===id;});
+  var nFiles=bs.reduce(function(n,b){return n+(b.files?b.files.length:0);},0);
+  var h='<button class="back" type="button" data-act="tripBack">'+ic('back',18)+'Trips</button>'+ticketHTML(t,false);
+  h+='<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap"><div class="seg" role="group" aria-label="Trip sections">'+[['plan','Plan '+bs.length],['docs','Files '+nFiles],['list','Checklist '+tasks.filter(function(x){return !x.done;}).length]].map(function(x){return '<button type="button" data-act="tripTab" data-v="'+x[0]+'" aria-pressed="'+(S.tripTab===x[0])+'">'+x[1]+'</button>';}).join('')+'</div><button class="btn small" type="button" data-open="trip:'+id+'">Edit trip</button></div>';
+  if(S.tripTab==='plan'){
+    if(caps.sample&&caps.assets)h+='<div><button class="btn primary" type="button" data-act="impOpen" data-trip="'+esc(id)+'">'+ic('upload',18)+'Import a confirmation</button><p class="note" style="margin-top:6px">Upload a booking PDF or screenshot, or paste an email. Percy fills in the details for you.</p></div>';
+    h+='<div class="chips" aria-label="Add to this trip">'+Object.keys(BTYPES).map(function(k){return '<button class="chip" type="button" data-act="add" data-kind="booking" data-preset="'+esc(JSON.stringify({type:k,tripId:id}))+'">'+ic(BTYPES[k].ico,16)+BTYPES[k].label+'</button>';}).join('')+'</div>';
+    var dated=bs.filter(function(b){return pd(b.date);}).sort(function(a,b){return (a.date+(a.time||'')).localeCompare(b.date+(b.time||''));});
+    var undated=bs.filter(function(b){return !pd(b.date);});
+    if(!bs.length)return h+empty('Nothing planned yet',(caps.sample&&caps.assets?'Tap Import a confirmation and add your booking.com or airline files. Or tap a type above to type one in.':'Tap a type above to add your first booking, then attach its confirmation.'));
+    var groups=[];dated.forEach(function(b){var g=groups.filter(function(x){return x.d===b.date;})[0];if(g)g.items.push(b);else groups.push({d:b.date,items:[b]});});
+    groups.forEach(function(g){
+      var d=pd(g.d),n=diffDays(d,s)+1;
+      var lab=(s&&e&&d>=s&&d<=e)?'Day '+n:(d<s?'Before you go':'After the trip');
+      h+='<div class="group-h">'+esc(lab)+' · '+esc(fd(d,'long'))+'</div><div class="board">'+g.items.map(bookingRow).join('')+'</div>';
+    });
+    if(undated.length)h+='<div class="group-h">Details and documents (no date)</div><div class="board">'+undated.map(bookingRow).join('')+'</div>';
+    return h;
+  }
+  if(S.tripTab==='docs'){
+    var groupsF={};
+    bs.forEach(function(b){(b.files||[]).forEach(function(f){var k=b.type||'other';(groupsF[k]=groupsF[k]||[]).push({f:f,b:b});});});
+    var keys=Object.keys(groupsF);
+    h+='<div>'+addBtn('booking','Add document',{type:'other',tripId:id})+'</div>';
+    if(!keys.length)return h+empty('No files yet','Attach confirmations, tickets and insurance to a booking and they appear here, sorted by type. There is no limit per trip.');
+    h+='<p class="note">'+nFiles+' file'+(nFiles===1?'':'s')+' in this trip. Tap one to open it.</p>';
+    keys.forEach(function(k){
+      h+='<div class="group-h">'+esc((BTYPES[k]||BTYPES.other).label)+'</div><div class="board">'+groupsF[k].map(function(x){return '<div class="file-row" style="border:0;border-radius:0;border-top:1px solid var(--line)">'+fileThumb(x.f)+'<span style="min-width:0"><a href="#" data-act="openfile" data-id="'+esc(x.f.id)+'" data-type="'+esc(x.f.type||'')+'">'+esc(x.f.name)+'</a><span class="sub">'+esc(x.b.title)+(x.f.size?' · '+bytes(x.f.size):'')+'</span></span><span></span></div>';}).join('')+'</div>';
+    });
+    return h;
+  }
+  var ordered=tasks.slice().sort(function(a,b){return (a.done?1:0)-(b.done?1:0)||String(a.title).localeCompare(String(b.title));});
+  h+=ordered.length?'<div class="board">'+ordered.map(function(x){return checkRow(x,'ttask',x.date?'Due '+fd(pd(x.date),'short'):'');}).join('')+'</div>':empty('No checklist yet','Add the small jobs that make a trip smooth.','<button class="btn small" type="button" data-act="starterTrip">Add a starter checklist</button>');
+  h+='<form data-form="addTtask" class="addbar"><input id="newTtask" aria-label="New checklist item" placeholder="Add an item" autocomplete="off"><button class="btn primary" type="submit">Add</button></form>';
+  return h;
+}
+function checkRow(x,kind,subtxt){
+  return '<div class="chk'+(x.done?' done':'')+'"><button class="box" type="button" data-act="tgl" data-id="'+x.id+'" aria-label="'+(x.done?'Mark not done':'Mark done')+'"><i>'+(x.done?ic('check',14):'')+'</i></button><button class="ttl" type="button" data-open="'+kind+':'+x.id+'"><span>'+esc(x.title)+'</span>'+(subtxt?'<span class="sub">'+esc(subtxt)+'</span>':'')+'</button><span></span></div>';
+}
+
+function viewVault(){
+  var docs=list('doc');
+  var counts={all:docs.length};docs.forEach(function(d){counts[d.cat]=(counts[d.cat]||0)+1;});
+  var h='<h1 class="page">Vault</h1><div>'+addBtn('doc','Add document')+'</div>';
+  if(!docs.length)return h+empty('Your documents, one place','Passport, licence, visas, Medicare and insurance cards. Add an expiry date and they will turn up on Today before they lapse. Attach a scan if you want it on hand.',addBtn('doc','Add your first'));
+  h+=chips([['all','All '+counts.all]].concat(Object.keys(DOC_CATS).filter(function(k){return counts[k];}).map(function(k){return [k,DOC_CATS[k].label+' '+counts[k]];})),S.vaultCat,'vcat');
+  var T=today();
+  var shown=docs.filter(function(d){return S.vaultCat==='all'||d.cat===S.vaultCat;}).sort(function(a,b){var x=pd(a.expiry),y=pd(b.expiry);if(x&&y)return x-y;if(x)return -1;if(y)return 1;return String(a.title).localeCompare(String(b.title));});
+  h+=shown.map(function(d){
+    var c=DOC_CATS[d.cat]||DOC_CATS.other,x=pd(d.expiry),n=x?diffDays(x,T):null;
+    var lead=d.remind!=null&&d.remind!==''?Number(d.remind):c.lead;
+    var cnt=x?'<span class="cnt '+tone(n,lead)+'">'+esc(n<0?'Expired':n===0?'Today':compact(n))+'</span>':'';
+    var num='';
+    if(d.number){var shownNum=S.reveal.has(d.id);num='<button class="reveal" type="button" data-act="reveal" data-id="'+d.id+'" aria-label="'+(shownNum?'Hide number':'Show number')+'">'+(shownNum?esc(d.number):'•••• '+esc(String(d.number).slice(-4)))+ic('eye',16)+'</button>';}
+    var files=(d.files||[]).map(function(f){return '<a class="lnk" href="#" data-act="openfile" data-id="'+esc(f.id)+'" data-type="'+esc(f.type||'')+'">'+ic('clip',14)+esc(f.name.length>22?f.name.slice(0,20)+'…':f.name)+'</a>';}).join('');
+    return '<div class="idcard" role="button" tabindex="0" data-open="doc:'+d.id+'"><div class="idc-top"><span class="idc-cat">'+ic(c.ico,16)+esc(c.label)+'</span>'+cnt+'</div><h3>'+esc(d.title)+'</h3><div class="idc-meta">'+(d.holder?'<span>'+esc(d.holder)+'</span>':'')+num+'</div><div class="idc-foot"><span>'+(x?'Expires '+esc(fd(x,'med')):'No expiry date')+'</span><span style="display:flex;gap:10px;flex-wrap:wrap">'+files+'</span></div></div>';
+  }).join('');
+  return h;
+}
+
+function viewMoney(){
+  var pays=list('pay'),T=today();
+  var h='<h1 class="page">Money</h1><div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">'+addBtn('pay','Add payment')+'<div class="seg" role="group" aria-label="View">'+[['list','List'],['cal','Calendar']].map(function(x){return '<button type="button" data-act="mview" data-v="'+x[0]+'" aria-pressed="'+(S.moneyView===x[0])+'">'+x[1]+'</button>';}).join('')+'</div></div>';
+  if(!pays.length)return h+empty('See what leaves your account','Add rent, subscriptions, insurance and bills with their next due date. You get a monthly total, a calendar and a warning before free trials start billing.',addBtn('pay','Add your first'));
+  var monthly=pays.reduce(function(s,p){return s+monthlyOf(p);},0);
+  var byCat={};pays.forEach(function(p){var k=PAY_CATS[p.cat]?p.cat:'other';byCat[k]=(byCat[k]||0)+monthlyOf(p);});
+  var cats=Object.keys(byCat).filter(function(k){return byCat[k]>0;}).sort(function(a,b){return byCat[b]-byCat[a];});
+  h+='<div class="card"><span class="lbl" style="color:var(--muted)">Recurring each month</span><div class="big" style="margin:4px 0 2px">'+esc(money(Math.round(monthly)))+'</div><span class="sub">About '+esc(money(Math.round(monthly*12)))+' a year across '+pays.filter(function(p){return (p.freq||'monthly')!=='once';}).length+' recurring payments</span>';
+  if(cats.length){
+    h+='<div class="bar" style="margin-top:14px" role="img" aria-label="Spending by category">'+cats.map(function(k){return '<i style="width:'+(byCat[k]/monthly*100).toFixed(2)+'%;background:var('+PAY_CATS[k].c+')"></i>';}).join('')+'</div><div class="legend">'+cats.map(function(k){return '<div><i style="background:var('+PAY_CATS[k].c+')"></i><span>'+esc(PAY_CATS[k].label)+'</span><span class="mono">'+esc(money(Math.round(byCat[k])))+'</span></div>';}).join('')+'</div>';
+  }
+  h+='</div>';
+  if(S.moneyView==='cal')return h+moneyCal(pays);
+  var rows=pays.map(function(p){var f=p.freq||'monthly',a=pd(p.date);if(!a)return null;var nx=nextOcc(a,f,T);return {p:p,nx:nx,n:diffDays(nx,T),f:f};}).filter(Boolean).sort(function(a,b){return a.nx-b.nx;});
+  var order=['Overdue','Next 7 days','Later this month','Next month','Later'],groups={};
+  rows.forEach(function(r){
+    var g;
+    if(r.n<0)g='Overdue';else if(r.n<=7)g='Next 7 days';
+    else if(r.nx.getFullYear()===T.getFullYear()&&r.nx.getMonth()===T.getMonth())g='Later this month';
+    else{var nm=addMonths(new Date(T.getFullYear(),T.getMonth(),1,12),1);g=(r.nx.getFullYear()===nm.getFullYear()&&r.nx.getMonth()===nm.getMonth())?'Next month':'Later';}
+    (groups[g]=groups[g]||[]).push(r);
+  });
+  order.forEach(function(g){
+    if(!groups[g])return;
+    h+='<div class="group-h">'+g+'</div><div class="board">'+groups[g].map(function(r){
+      var c=PAY_CATS[r.p.cat]||PAY_CATS.other;
+      var t=r.n<0?'late':(r.n<=3?'hot':(r.n<=7?'warm':'calm'));
+      var trial=r.p.trialEnd?' · trial ends '+fd(pd(r.p.trialEnd),'short'):'';
+      return '<div class="brow" role="button" tabindex="0" data-open="pay:'+r.p.id+'"><span class="ico">'+ic(c.ico)+'</span><span class="bmain"><b>'+esc(r.p.name)+'</b><span class="sub">'+esc((FREQ[r.f]||{}).label+' · '+c.label+trial)+'</span></span><span class="when"><b>'+esc(money(r.p.amount)||'—')+'</b><span class="cnt '+t+'">'+esc(r.n<0?'Overdue':r.n===0?'Today':fd(r.nx,'short'))+'</span></span></div>';
+    }).join('')+'</div>';
+  });
+  return h;
+}
+function moneyCal(pays){
+  var T=today();
+  if(!S.calY){S.calY=T.getFullYear();S.calM=T.getMonth();}
+  var ms=new Date(S.calY,S.calM,1,12),me=new Date(S.calY,S.calM+1,0,12),dim=me.getDate();
+  var byDay={},total=0;
+  pays.forEach(function(p){var a=pd(p.date);if(!a)return;occRange(a,p.freq||'monthly',ms,me).forEach(function(o){var k=ymd(o);(byDay[k]=byDay[k]||[]).push(p);total+=Number(p.amount)||0;});});
+  var lead=(ms.getDay()+6)%7;
+  var h='<div class="calhead"><button class="icon-btn" type="button" data-act="calnav" data-v="-1" aria-label="Previous month">'+ic('back')+'</button><div style="text-align:center"><h3>'+esc(fd(ms,'month'))+'</h3><span class="sub">'+esc(money(Math.round(total)))+' due this month</span></div><button class="icon-btn" type="button" data-act="calnav" data-v="1" aria-label="Next month">'+ic('next')+'</button></div>';
+  h+='<div class="cal" role="grid">'+['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(function(d){return '<div class="dow">'+d+'</div>';}).join('');
+  for(var i=0;i<lead;i++)h+='<div class="day blank"></div>';
+  if(!S.calSel&&S.calY===T.getFullYear()&&S.calM===T.getMonth())S.calSel=ymd(T);
+  var sel=S.calSel;
+  for(var d=1;d<=dim;d++){
+    var dt=new Date(S.calY,S.calM,d,12),k=ymd(dt),arr=byDay[k]||[];
+    var cls='day'+(k===ymd(T)?' today':'')+(k===sel?' sel':'');
+    h+='<button type="button" class="'+cls+'" data-act="calday" data-d="'+k+'" aria-label="'+esc(fd(dt,'long'))+(arr.length?', '+arr.length+' due':'')+'">'+d+'<span class="dots">'+arr.slice(0,3).map(function(p){return '<i style="background:var('+(PAY_CATS[p.cat]||PAY_CATS.other).c+')"></i>';}).join('')+'</span></button>';
+  }
+  h+='</div>';
+  if(sel&&byDay[sel]){
+    h+='<div class="group-h">'+esc(fd(pd(sel),'long'))+'</div><div class="board">'+byDay[sel].map(function(p){var c=PAY_CATS[p.cat]||PAY_CATS.other;return '<div class="brow" role="button" tabindex="0" data-open="pay:'+p.id+'"><span class="ico">'+ic(c.ico)+'</span><span class="bmain"><b>'+esc(p.name)+'</b><span class="sub">'+esc(c.label)+'</span></span><span class="when"><b>'+esc(money(p.amount)||'—')+'</b></span></div>';}).join('')+'</div>';
+  }else h+='<p class="note">'+(sel?'Nothing due on '+esc(fd(pd(sel),'long'))+'.':'Tap a day to see what is due.')+'</p>';
+  return h;
+}
+
+function viewHome(){
+  var lease=list('lease')[0],T=today();
+  var h='<h1 class="page">Home</h1>';
+  if(!lease){
+    h+=empty('Set up your rental','Add your lease end date and this tab turns into an end-of-lease countdown, with a checklist, your property manager and a repair log.','<button class="btn primary" type="button" data-act="add" data-kind="lease">Add lease details</button>');
+  }else{
+    var end=pd(lease.end),n=end?diffDays(end,T):null;
+    h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div style="min-width:0"><span class="lbl" style="color:var(--muted)">Lease ends</span><div class="big" style="margin:4px 0 2px">'+(n==null?'—':n<0?'Ended':n)+'</div><span class="sub">'+(n==null?'':n<0?'Ended '+(-n)+' days ago':(n===1?'day left':'days left')+' · '+esc(fd(end,'med')))+'</span></div><button class="btn small" type="button" data-open="lease:'+lease.id+'">Edit</button></div>'+
+      '<dl class="kv" style="margin:14px 0 0">'+(lease.place?'<dt>Property</dt><dd>'+esc(lease.place)+'</dd>':'')+(lease.start?'<dt>Started</dt><dd>'+esc(fd(pd(lease.start),'med'))+'</dd>':'')+(lease.bond?'<dt>Bond</dt><dd class="mono">'+esc(money(lease.bond))+'</dd>':'')+(lease.manager?'<dt>Manager</dt><dd>'+esc(lease.manager)+'</dd>':'')+(lease.contact?'<dt>Contact</dt><dd><span class="ref" role="button" tabindex="0" data-act="copy" data-v="'+esc(lease.contact)+'" aria-label="Copy contact">'+esc(lease.contact)+ic('copy',14)+'</span></dd>':'')+'</dl>'+
+      ((lease.files&&lease.files.length)?'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">'+lease.files.map(function(f){return '<a class="lnk" href="#" data-act="openfile" data-id="'+esc(f.id)+'" data-type="'+esc(f.type||'')+'">'+ic('clip',14)+esc(f.name)+'</a>';}).join('')+'</div>':'')+'</div>';
+    var tasks=list('ltask').sort(function(a,b){return (a.done?1:0)-(b.done?1:0)||(Number(b.offset)||0)-(Number(a.offset)||0);});
+    h+=sec('End-of-lease checklist',addBtn('ltask','Task'));
+    h+=tasks.length?'<div class="board">'+tasks.map(function(x){var d=end?addDays(end,-(Number(x.offset)||0)):null;return checkRow(x,'ltask',d?'Due '+fd(d,'short')+' · '+((Number(x.offset)||0)>=0?(Number(x.offset)||0)+' days before':(-Number(x.offset))+' days after'):'');}).join('')+'</div>':empty('No checklist yet','Add the usual list and adjust the timing to match your lease.','<button class="btn small" type="button" data-act="starterLease">Add a standard checklist</button>');
+  }
+  var utils=list('util');
+  h+=sec('Utilities',addBtn('util','Utility'));
+  h+=utils.length?'<div class="board">'+utils.map(function(u){return '<div class="brow" role="button" tabindex="0" data-open="util:'+u.id+'"><span class="ico">'+ic('bolt')+'</span><span class="bmain"><b>'+esc(u.provider)+'</b><span class="sub">'+esc(u.type||'')+'</span></span><span class="when">'+(u.account?'<span class="ref" role="button" tabindex="0" data-act="copy" data-v="'+esc(u.account)+'" aria-label="Copy account number">'+esc(u.account)+ic('copy',14)+'</span>':'')+'</span></div>';}).join('')+'</div>':'<div class="clear">Keep providers and account numbers here for move-in and move-out. Add the bills themselves under Money.</div>';
+  var ms=list('maint').sort(function(a,b){return (a.status==='open'?0:1)-(b.status==='open'?0:1)||String(b.date).localeCompare(String(a.date));});
+  h+=sec('Repair requests',addBtn('maint','Request'));
+  h+=ms.length?'<div class="board">'+ms.map(function(m){return '<div class="brow" role="button" tabindex="0" data-open="maint:'+m.id+'"><span class="ico">'+ic('wrench')+'</span><span class="bmain"><b>'+esc(m.title)+'</b><span class="sub">'+esc(m.date?'Reported '+fd(pd(m.date),'med'):'')+'</span></span><span class="when"><span class="pill '+(m.status==='resolved'?'good':'warm')+'">'+(m.status==='resolved'?'Resolved':'Open')+'</span>'+fileCount(m)+'</span></div>';}).join('')+'</div>':'<div class="clear">Log each repair request with the date and photos. It is your evidence if there is ever a dispute.</div>';
+  return h;
+}
+
+function viewMore(){
+  var map={vehicle:viewVehicle,receipts:viewReceipts,tax:viewTax,emerg:viewEmerg,data:viewData};
+  if(S.more&&map[S.more])return map[S.more]();
+  var tiles=[['vehicle','car','Vehicle',list('vehicle').length+' reminders'],['receipts','receipt','Receipts & warranties',list('receipt').length+' saved'],['tax','folder','Tax year',list('receipt').filter(function(r){return r.tax;}).length+' deductible'],['emerg','cross','Emergency sheet',list('emerg').length+' entries'],['data','download','Backup & data','Export or restore']];
+  return '<h1 class="page">More</h1><div class="tiles">'+tiles.map(function(t){return '<button class="tile" type="button" data-act="more" data-v="'+t[0]+'"><span class="ico">'+ic(t[1])+'</span><b>'+t[2]+'</b><span class="sub">'+t[3]+'</span></button>';}).join('')+'</div>';
+}
+function moreBack(title,right){return '<button class="back" type="button" data-act="more" data-v="">'+ic('back',18)+'More</button><h1 class="page">'+esc(title)+'</h1>'+(right?'<div>'+right+'</div>':'');}
+function viewVehicle(){
+  var rows=list('vehicle').map(function(v){return mkEv({ico:'car',title:(VEH_CATS[v.cat]||'Reminder')+(v.vehicle?' · '+v.vehicle:''),sub:v.notes||'Due',date:pd(v.date),lead:v.remind!==undefined&&v.remind!==''?Number(v.remind):30,late:true,lateWord:'Overdue',open:['vehicle',v.id]});}).filter(function(e){return e.date;}).sort(function(a,b){return a.date-b.date;});
+  var h=moreBack('Vehicle',addBtn('vehicle','Add reminder'));
+  return h+(rows.length?'<div class="board">'+rows.map(evRow).join('')+'</div>':empty('Rego, insurance and service','Add each due date once and it will appear on Today ahead of time.',addBtn('vehicle','Add reminder')));
+}
+function warrantyPill(r){
+  var w=pd(r.warrantyEnd);if(!w)return '';var n=diffDays(w,today());
+  return n<0?'<span class="pill">Warranty ended</span>':'<span class="pill '+(n<=30?'warm':'good')+'">'+esc(compact(n))+' of warranty left</span>';
+}
+function viewReceipts(){
+  var all=list('receipt'),h=moreBack('Receipts & warranties',addBtn('receipt','Add receipt'));
+  if(!all.length)return h+empty('Keep proof of purchase','Save the receipt, note the warranty end date and flag anything tax deductible. It all lands in the right financial year.',addBtn('receipt','Add receipt'));
+  h+=chips([['all','All '+all.length],['warranty','Warranty active'],['tax','Tax deductible']],S.recFilter,'rfilter');
+  var T=today();
+  var shown=all.filter(function(r){if(S.recFilter==='tax')return r.tax;if(S.recFilter==='warranty'){var w=pd(r.warrantyEnd);return w&&w>=T;}return true;}).sort(function(a,b){return String(b.date).localeCompare(String(a.date));});
+  return h+(shown.length?'<div class="board">'+shown.map(function(r){return '<div class="brow" role="button" tabindex="0" data-open="receipt:'+r.id+'"><span class="ico">'+ic('receipt')+'</span><span class="bmain"><b>'+esc(r.title)+'</b><span class="sub">'+esc([r.store,r.date?fd(pd(r.date),'med'):''].filter(Boolean).join(' · '))+'</span>'+(r.tax?'<span class="pill good" style="align-self:flex-start;margin-top:4px">Tax</span>':'')+'</span><span class="when"><b>'+esc(money(r.amount))+'</b>'+warrantyPill(r)+fileCount(r)+'</span></div>';}).join('')+'</div>':'<div class="clear">Nothing matches this filter.</div>');
+}
+function taxItems(){return list('receipt').filter(function(r){return r.tax&&pd(r.date);});}
+function viewTax(){
+  var items=taxItems(),h=moreBack('Tax year');
+  if(!items.length)return h+empty('Nothing flagged yet','Turn on "Tax deductible" when you save a receipt and it will be filed here under the Australian financial year (1 July to 30 June).',addBtn('receipt','Add receipt'));
+  var years={};items.forEach(function(r){var y=fyOf(pd(r.date));(years[y]=years[y]||[]).push(r);});
+  var keys=Object.keys(years).map(Number).sort(function(a,b){return b-a;});
+  if(!S.taxFY||!years[S.taxFY])S.taxFY=keys[0];
+  var cur=years[S.taxFY].slice().sort(function(a,b){return String(a.date).localeCompare(String(b.date));});
+  var total=cur.reduce(function(s,r){return s+(Number(r.amount)||0);},0);
+  h+=chips(keys.map(function(y){return [String(y),fyLabel(y)];}),String(S.taxFY),'fy');
+  h+='<div class="card"><span class="lbl" style="color:var(--muted)">'+esc(fyLabel(S.taxFY))+' · '+cur.length+' item'+(cur.length===1?'':'s')+'</span><div class="big" style="margin:4px 0 2px">'+esc(money(Math.round(total*100)/100)||'$0')+'</div><span class="sub">Total of flagged receipts. Check eligibility with your tax agent or the ATO.</span></div>';
+  h+='<div class="board">'+cur.map(function(r){return '<div class="brow" role="button" tabindex="0" data-open="receipt:'+r.id+'"><span class="ico">'+ic('receipt')+'</span><span class="bmain"><b>'+esc(r.title)+'</b><span class="sub">'+esc([fd(pd(r.date),'med'),r.taxNote].filter(Boolean).join(' · '))+'</span></span><span class="when"><b>'+esc(money(r.amount))+'</b>'+fileCount(r)+'</span></div>';}).join('')+'</div>';
+  if(caps.downloads)h+='<div><button class="btn" type="button" data-act="taxcsv">'+ic('download',18)+'Export '+esc(fyLabel(S.taxFY))+' as CSV</button></div>';
+  return h;
+}
+function viewEmerg(){
+  var all=list('emerg'),h=moreBack('Emergency sheet',addBtn('emerg','Add entry'));
+  if(!all.length)return h+empty('The things you need in a bad moment','Bank hotlines, insurance policy numbers, who to call, where the originals are kept. Do not store passwords here.',addBtn('emerg','Add entry'));
+  Object.keys(EM_GROUPS).forEach(function(g){
+    var rows=all.filter(function(e){return (e.group||'other')===g;});if(!rows.length)return;
+    h+='<div class="group-h">'+EM_GROUPS[g]+'</div><div class="board">'+rows.map(function(e){return '<div class="brow" role="button" tabindex="0" data-open="emerg:'+e.id+'"><span class="ico">'+ic('cross')+'</span><span class="bmain"><b>'+esc(e.label)+'</b>'+(e.notes?'<span class="sub">'+esc(e.notes)+'</span>':'')+'</span><span class="when">'+(e.value?'<span class="ref" role="button" tabindex="0" data-act="copy" data-v="'+esc(e.value)+'" aria-label="Copy details">'+esc(e.value)+ic('copy',14)+'</span>':'')+'</span></div>';}).join('')+'</div>';
+  });
+  return h;
+}
+function keyCardHTML(){
+  var has=!!lsGet('percy.apikey');
+  return '<div class="card" style="display:flex;flex-direction:column;gap:10px"><h3 style="font:700 1.125rem var(--f-body)">Reading booking confirmations</h3><p class="note">To fill in bookings from a PDF or screenshot, Percy sends the file to Claude using your own Anthropic API key. Get a key at console.anthropic.com. Each confirmation costs a few cents. The key stays on this phone.</p><div class="fld"><label for="apiKey">Anthropic API key'+(has?' (saved)':'')+'</label><input id="apiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="'+(has?'Paste a new key to replace it':'sk-ant-…')+'"></div><div><button class="btn" type="button" data-act="saveKey">Save key</button></div></div>';
+}
+function viewData(){
+  var h=moreBack('Backup & data');
+  var where=window.PERCY_MODE==='native'?'Your items are saved on this phone, inside the Percy app. Files you attach are saved in your phone’s Documents folder under Percy, in a folder for each trip. Export a backup before you uninstall the app or change phones.':window.PERCY_MODE==='pwa'?'Your items and attached files are saved on this phone, inside Percy, with a folder for each trip under the Files tab of the trip. Open Percy from its Home Screen icon so the phone is less likely to clear it, and export a backup now and then. A backup holds your items but not the attached files.':S.mode==='cloud'?'Your items are saved in this app’s private storage on claude.ai and are visible only to you unless you share the artifact. Keep link sharing off, because this app can hold scans of identity documents.':'Your items are saved in this browser only. Open the app from your Claude artifacts while signed in to keep them in private storage.';
+  h+='<div class="card"><p>'+esc(where)+'</p></div>';
+  if(window.PERCY_NATIVE)h+=keyCardHTML();
+  h+='<div class="card"><p><b>'+S.items.size+'</b> items saved. Files are stored separately; a backup holds the items and their file references, not the files themselves.</p></div>';
+  h+='<div style="display:flex;gap:10px;flex-wrap:wrap">'+(caps.downloads?'<button class="btn" type="button" data-act="export">'+ic('download',18)+'Export backup</button>':'')+'<button class="btn" type="button" data-act="importPick">'+ic('upload',18)+'Restore from backup</button><input class="vh" type="file" id="importInput" accept="application/json,.json" tabindex="-1"></div>';
+  if(!caps.downloads)h+='<p class="note">Saving a backup file is not available in this view.</p>';
+  h+='<p class="note">Reminders show inside this app. It cannot send push notifications, so check Today now and then.</p>';
+  return h;
+}
+
+/* ---------- render ---------- */
+var TABS=[['today','calendar','Today'],['trips','plane','Trips'],['vault','shield','Vault'],['money','card','Money'],['home','house','Home'],['more','more','More']];
+function renderAll(){
+  var main=$('#main');
+  var att=S.ready?buildEvents().filter(function(e){return e.n<=e.lead;}).length:0;
+  $('#tabs').innerHTML=TABS.map(function(t){return '<button class="tab" type="button" data-act="tab" data-v="'+t[0]+'"'+(S.tab===t[0]?' aria-current="page"':'')+'><span class="tab-i">'+ic(t[1],22)+'</span>'+t[2]+(t[0]==='today'&&att?'<span class="badge" aria-label="'+att+' need attention">'+att+'</span>':'')+'</button>';}).join('');
+  $('#todayLabel').textContent=fd(today(),'long');
+  $('#fab').hidden=!S.ready;
+  if(!S.ready){return;}
+  var v={today:viewToday,trips:viewTrips,vault:viewVault,money:viewMoney,home:viewHome,more:viewMore}[S.tab]||viewToday;
+  var banners='';
+  if(S.err)banners+='<div class="banner err">'+esc(S.err)+'</div>';
+  if(S.mode==='local'&&!window.PERCY_NATIVE)banners+='<div class="banner">Saving on this device only. Open this app from your Claude artifacts while signed in to keep your items in private storage.</div>';
+  var keep=document.activeElement&&document.activeElement.id==='newTtask'?document.activeElement.value:null;
+  main.innerHTML=banners+v();
+  if(keep!==null){var el=$('#newTtask');if(el){el.value=keep;}}
+}
+
+/* ---------- sheet ---------- */
+function folderFor(o){var t=o.tripId&&S.items.get(o.tripId);return t?(t.name||'Trip'):({doc:'Vault',lease:'Home',maint:'Home',receipt:'Receipts',vehicle:'Vehicle'}[o.kind]||'Other');}
+function openSheet(title,body,foot,mode){
+  $('#sheetTitle').textContent=title;$('#sheetBody').innerHTML=body;$('#sheetFoot').innerHTML=foot||'';
+  S.sheetMode=mode||'form';$('#scrim').hidden=false;$('#sheetBody').scrollTop=0;
+}
+function closeSheet(){if(S.imp&&S.imp.ctl){try{S.imp.ctl.abort();}catch(e){}}S.imp=null;$('#scrim').hidden=true;S.form=null;S.sheetMode=null;$('#sheetBody').innerHTML='';}
+var toastTimer=null;
+function toast(msg){var t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.hidden=true;},2600);}
+
+function fieldHTML(f,v){
+  var id='f_'+f.k,lab='<label for="'+id+'">'+esc(f.l||'')+(f.req?' <span class="req">(required)</span>':'')+'</label>';
+  if(f.t==='area')return '<div class="fld">'+lab+'<textarea id="'+id+'" name="'+f.k+'" rows="3" placeholder="'+esc(f.ph||'')+'">'+esc(v||'')+'</textarea></div>';
+  if(f.t==='select')return '<div class="fld">'+lab+'<select id="'+id+'" name="'+f.k+'">'+f.opts.map(function(o){return '<option value="'+esc(o[0])+'"'+(String(v==null?'':v)===String(o[0])?' selected':'')+'>'+esc(o[1])+'</option>';}).join('')+'</select></div>';
+  if(f.t==='toggle')return '<label class="tog" for="'+id+'"><input type="checkbox" id="'+id+'" name="'+f.k+'"'+(v?' checked':'')+'>'+esc(f.l)+'</label>';
+  var type=f.t==='number'?'number':f.t;
+  return '<div class="fld">'+lab+'<input id="'+id+'" name="'+f.k+'" type="'+type+'"'+(f.t==='number'?' inputmode="decimal" step="any"':'')+(f.mono?' class="mono"':'')+(f.req?' required aria-required="true"':'')+' placeholder="'+esc(f.ph||'')+'" value="'+esc(v==null?'':v)+'"></div>';
+}
+function filesHTML(){
+  var f=S.form;
+  var rows=f.files.map(function(x,i){return '<div class="file-row">'+fileThumb(x)+'<span style="min-width:0"><a href="#" data-act="openfile" data-id="'+esc(x.id)+'" data-type="'+esc(x.type||'')+'">'+esc(x.name)+'</a><span class="sub">'+esc(bytes(x.size))+'</span></span><button class="rm" type="button" data-act="rmfile" data-i="'+i+'" aria-label="Remove '+esc(x.name)+'">'+ic('x',18)+'</button></div>';}).join('');
+  rows+=f.pending.map(function(x,i){return '<div class="file-row"><span class="thumb">'+ic('upload',20)+'</span><span style="min-width:0"><span style="font-weight:600;font-size:14px;overflow-wrap:anywhere">'+esc(x.name)+'</span><span class="sub">Uploads when you save · '+esc(bytes(x.size))+'</span></span><button class="rm" type="button" data-act="rmpend" data-i="'+i+'" aria-label="Remove '+esc(x.name)+'">'+ic('x',18)+'</button></div>';}).join('');
+  return rows;
+}
+function filesFieldHTML(){
+  if(!caps.assets)return '<div class="fld"><span class="lbl">Attachments</span><div class="files" id="fileList">'+filesHTML()+'</div><p class="note">Uploading is not available in this view. Open the app from your Claude artifacts, signed in.</p></div>';
+  return '<div class="fld"><span class="lbl">Attachments</span><div class="files" id="fileList">'+filesHTML()+'</div><span class="btn pick" style="align-self:flex-start">'+ic('clip',18)+'Add files<input type="file" id="fileInput" multiple accept="image/*,application/pdf" aria-label="Add files"></span><p class="note">PDF, JPG, PNG, WebP or GIF, up to 20 MB each. No limit on how many.</p></div>';
+}
+function openForm(kind,id,preset){
+  var F=FORMS[kind];if(!F)return;
+  var existing=id?S.items.get(id):null;
+  var item=existing?Object.assign({},existing):Object.assign({kind:kind},F.def?F.def():{},preset||{});
+  S.form={kind:kind,id:id||null,item:item,files:(item.files||[]).slice(),pending:[],removed:[],busy:false,confirmDel:false};
+  var html='';
+  for(var i=0;i<F.fields.length;i++){
+    var f=F.fields[i];
+    if(f.t==='files'){html+=filesFieldHTML();continue;}
+    if(f.half&&F.fields[i+1]&&F.fields[i+1].half){html+='<div class="fld-row">'+fieldHTML(f,item[f.k])+fieldHTML(F.fields[i+1],item[F.fields[i+1].k])+'</div>';i++;continue;}
+    html+=fieldHTML(f,item[f.k]);
+  }
+  var foot='<button class="btn primary" type="submit" id="saveBtn">Save</button>'+(id?'<button class="btn danger" type="button" data-act="delAsk" id="delBtn" style="flex:0 0 auto">'+ic('trash',18)+'Delete</button>':'');
+  openSheet((id?'Edit ':'New ')+F.label,html,foot,'form');
+}
+function fileKind(file){
+  var t=file.type||'',n=(file.name||'').toLowerCase();
+  if(/^image\/(png|jpeg|webp|gif)$/.test(t)||t==='application/pdf')return t;
+  if(/\.pdf$/.test(n))return 'application/pdf';
+  if(/\.(jpe?g)$/.test(n))return 'image/jpeg';
+  if(/\.png$/.test(n))return 'image/png';
+  if(/\.webp$/.test(n))return 'image/webp';
+  if(/\.gif$/.test(n))return 'image/gif';
+  return null;
+}
+async function saveForm(){
+  var f=S.form;if(!f||f.busy)return;
+  var F=FORMS[f.kind],form=$('#sheetForm'),data=new FormData(form),obj=Object.assign({},f.item);
+  var missing=null;
+  F.fields.forEach(function(fl){
+    if(fl.t==='files')return;
+    var v=data.get(fl.k);
+    if(fl.t==='toggle'){obj[fl.k]=!!v;return;}
+    if(fl.t==='number'){obj[fl.k]=(v===''||v==null)?null:Number(v);return;}
+    obj[fl.k]=String(v==null?'':v).trim();
+    if(fl.req&&!obj[fl.k]&&!missing)missing=fl.l;
+  });
+  if(missing){toast('Fill in: '+missing);return;}
+  if(f.kind==='trip'&&obj.start&&obj.end&&obj.end<obj.start){toast('The end date is before the start date.');return;}
+  f.busy=true;var btn=$('#saveBtn');btn.disabled=true;btn.textContent=f.pending.length?'Uploading…':'Saving…';
+  try{
+    var uploaded=[];
+    for(var i=0;i<f.pending.length;i++){
+      var file=f.pending[i],type=fileKind(file);
+      var r=await caps.assets.upload(file,{type:type,folder:folderFor(Object.assign({kind:f.kind},obj))});
+      uploaded.push({id:r.id,name:file.name,type:r.contentType,size:r.sizeBytes});
+    }
+    var hasFiles=F.fields.some(function(x){return x.t==='files';});
+    if(hasFiles)obj.files=f.files.concat(uploaded);
+    var id=f.id||gid(f.kind);
+    if(!f.id)obj.createdAt=new Date().toISOString();
+    obj.kind=f.kind;delete obj.id;
+    await Store.save(id,obj);
+    if(f.removed.length&&caps.assets){f.removed.forEach(function(x){caps.assets.delete(x.id).catch(function(){});});}
+    var wasNewTrip=f.kind==='trip'&&!f.id;
+    closeSheet();toast('Saved');
+    if(wasNewTrip){S.tab='trips';S.trip=id;S.tripTab='plan';lsSet('lap.tab','trips');renderAll();window.scrollTo(0,0);}
+  }catch(err){
+    f.busy=false;btn.disabled=false;btn.textContent='Save';
+    var code=err&&err.code;
+    toast(code==='unsupported_type'?'That file type is not supported. Use PDF, JPG or PNG.':code==='too_large'?'A file is over 20 MB.':code==='quota_or_state'?'Storage is full.':'Could not save. Try again.');
+  }
+}
+async function doDelete(){
+  var f=S.form;if(!f||!f.id)return;
+  var ids=[f.id],assetIds=(f.item.files||[]).map(function(x){return x.id;});
+  if(f.kind==='trip'){
+    S.items.forEach(function(d,k){if((d.kind==='booking'||d.kind==='ttask')&&d.tripId===f.id){ids.push(k);(d.files||[]).forEach(function(x){assetIds.push(x.id);});}});
+  }
+  closeSheet();
+  try{
+    for(var i=0;i<ids.length;i++)await Store.del(ids[i]);
+    if(S.trip&&ids.indexOf(S.trip)>=0)S.trip=null;
+    renderAll();toast('Deleted');
+    if(caps.assets)assetIds.forEach(function(a){caps.assets.delete(a).catch(function(){});});
+  }catch(e){toast('Could not delete. Try again.');}
+}
+
+/* ---------- search ---------- */
+function openSearch(){
+  openSheet('Search','<div class="fld"><input id="q" type="search" placeholder="Passport, booking number, provider…" aria-label="Search everything" autocomplete="off"></div><div id="qres"></div>','','search');
+  $('#q').addEventListener('input',runSearch);runSearch();
+}
+function runSearch(){
+  var q=($('#q').value||'').toLowerCase().trim().split(/\s+/).filter(Boolean),out=[];
+  if(q.length){
+    S.items.forEach(function(d,id){
+      var hay=Object.keys(d).map(function(k){var v=d[k];return (typeof v==='string'||typeof v==='number')?v:'';}).join(' ').toLowerCase()+' '+(d.files||[]).map(function(f){return f.name;}).join(' ').toLowerCase();
+      if(q.every(function(t){return hay.indexOf(t)>=0;}))out.push([id,d]);
+    });
+  }
+  var box=$('#qres');
+  if(!q.length){box.innerHTML='<p class="note">Search titles, notes, confirmation numbers and file names.</p>';return;}
+  if(!out.length){box.innerHTML='<p class="note">Nothing found.</p>';return;}
+  box.innerHTML='<div class="board">'+out.slice(0,30).map(function(r){
+    var d=r[1],go=d.kind==='trip'?'data-go="trips" data-trip="'+r[0]+'"':'data-open="'+d.kind+':'+r[0]+'"';
+    return '<div class="brow" role="button" tabindex="0" '+go+'><span class="ico">'+ic(KIND_ICO[d.kind]||'doc')+'</span><span class="bmain"><b>'+esc(nameOf(d))+'</b><span class="sub">'+esc(KIND_LABEL[d.kind]||'')+'</span></span><span></span></div>';
+  }).join('')+'</div>';
+}
+function openAddMenu(){
+  var items=[['trip','plane','Trip'],['doc','shield','Document'],['pay','card','Payment'],['receipt','receipt','Receipt'],['vehicle','car','Vehicle reminder'],['emerg','cross','Emergency entry'],['maint','wrench','Repair request'],['util','bolt','Utility account']];
+  openSheet('Add','<div class="tiles">'+items.map(function(i){return '<button class="tile" type="button" data-act="add" data-kind="'+i[0]+'" style="min-height:92px"><span class="ico">'+ic(i[1])+'</span><b>'+i[2]+'</b></button>';}).join('')+'</div>','','add');
+}
+
+/* ---------- actions ---------- */
+function go(tab){
+  S.tab=tab;S.reveal=new Set();if(tab!=='trips')S.trip=null;if(tab!=='more')S.more=null;
+  lsSet('lap.tab',tab);if(!$('#scrim').hidden)closeSheet();renderAll();window.scrollTo(0,0);
+}
+async function addStarter(kind){
+  try{
+    if(kind==='lease'){var lease=list('lease')[0];if(!lease||!pd(lease.end)){toast('Set your lease end date first.');return;}
+      for(var i=0;i<LEASE_STARTER.length;i++)await Store.save(gid('ltask'),{kind:'ltask',title:LEASE_STARTER[i][0],offset:LEASE_STARTER[i][1]});
+    }else{
+      for(var j=0;j<TRIP_STARTER.length;j++)await Store.save(gid('ttask'),{kind:'ttask',tripId:S.trip,title:TRIP_STARTER[j]});
+    }
+    toast('Checklist added');
+  }catch(e){toast('Could not add the checklist.');}
+}
+function copyText(v){
+  function fail(){toast('Could not copy. Select the text instead.');}
+  try{navigator.clipboard.writeText(v).then(function(){toast('Copied');},fail);}catch(e){fail();}
+}
+function csvCell(s){s=String(s==null?'':s);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}
+async function saveFile(name,data){
+  if(!caps.downloads){toast('Saving files is not available here.');return;}
+  try{var r=await caps.downloads.save({filename:name,data:data});toast(r&&r.where?'Saved in '+r.where:'Saved');}
+  catch(e){if(!e||e.code!=='declined')toast('Could not save the file.');}
+}
+async function importBackup(file){
+  try{
+    var o=JSON.parse(await file.text());
+    var items=o&&o.items;if(!items||typeof items!=='object'||(o.app!=='percy'&&o.app!=='life-admin-pocket')){toast('That is not a backup from this app.');return;}
+    var ids=Object.keys(items);toast('Restoring '+ids.length+' items…');
+    for(var i=0;i<ids.length;i++){var d=items[ids[i]];if(d&&typeof d==='object'&&d.kind)await Store.save(ids[i],d);}
+    toast('Restored '+ids.length+' items');
+  }catch(e){toast('Could not read that file.');}
+}
+
+/* ---------- import a confirmation ---------- */
+var PDFJS_V='3.11.174',pdfjsP=null;
+function loadPdfjs(){
+  if(window.pdfjsLib)return Promise.resolve(window.pdfjsLib);
+  if(pdfjsP)return pdfjsP;
+  pdfjsP=new Promise(function(res,rej){
+    var sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/'+PDFJS_V+'/pdf.min.js';
+    sc.onload=function(){var l=window.pdfjsLib;if(!l){pdfjsP=null;rej(new Error('pdfjs'));return;}l.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/'+PDFJS_V+'/pdf.worker.min.js';res(l);};
+    sc.onerror=function(){pdfjsP=null;rej(new Error('pdfjs'));};
+    document.head.appendChild(sc);
+    setTimeout(function(){if(!window.pdfjsLib){pdfjsP=null;rej(new Error('pdfjs'));}},15000);
+  });
+  return pdfjsP;
+}
+async function pdfToInput(file){
+  var lib=await loadPdfjs();
+  var doc=await Promise.race([lib.getDocument({data:await file.arrayBuffer()}).promise,new Promise(function(_,rj){setTimeout(function(){rj(new Error('pdfjs'));},30000);})]);
+  var text='',n=Math.min(doc.numPages,10);
+  for(var i=1;i<=n;i++){
+    var pg=await doc.getPage(i),tc=await pg.getTextContent();
+    text+=tc.items.map(function(it){return it.str+(it.hasEOL?'\n':' ');}).join('')+'\n';
+  }
+  if(text.replace(/\s/g,'').length>=60)return {text:text.slice(0,60000),images:[]};
+  var imgs=[];
+  for(var j=1;j<=Math.min(doc.numPages,3);j++){
+    var pg2=await doc.getPage(j),vp=pg2.getViewport({scale:1.6});
+    var cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;
+    await pg2.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+    var blob=await new Promise(function(r){cv.toBlob(r,'image/jpeg',0.85);});
+    if(blob)imgs.push(blob);
+  }
+  return {text:'',images:imgs};
+}
+function impPrompt(content){
+  var t=S.items.get(S.imp.tripId)||{};
+  return 'You read travel booking confirmations (hotels, flights, transport, tours, insurance) and return structured data.\n'
+   +'The traveller is on a trip called "'+(t.name||'Trip')+'"'+(t.start&&t.end?' from '+t.start+' to '+t.end:'')+'. Use this to resolve dates that omit the year. Dates in the source may be day/month/year.\n'
+   +'Reply with only a JSON array. One object per distinct booking: a hotel stay is one object; each flight leg is its own object; a car or transfer is one object. Fields (all strings, use "" when unknown, never guess):\n'
+   +'- type: one of flight, stay, transport, activity, insurance, other\n'
+   +'- title: short name, e.g. the property name, or "Airline FLIGHTNO Origin to Destination"\n'
+   +'- date: YYYY-MM-DD, check-in or departure\n'
+   +'- time: HH:MM 24-hour, check-in/departure/pick-up time\n'
+   +'- endDate: YYYY-MM-DD, check-out or arrival date if different\n'
+   +'- where: street address, or the route like "BNE → CMB"\n'
+   +'- ref: the confirmation or booking number\n'
+   +'- notes: under 300 characters: guests, room type, check-out time, total price, cancellation deadline, PIN, host or hotel phone\n'
+   +'If the content holds no booking, reply [].\n\n'+content;
+}
+function impClean(o){
+  var types=Object.keys(BTYPES),r={};
+  r.type=types.indexOf(o&&o.type)>=0?o.type:'other';
+  ['title','where','ref','notes'].forEach(function(k){r[k]=String((o&&o[k])||'').trim();});
+  ['date','endDate'].forEach(function(k){var v=String((o&&o[k])||'').trim();r[k]=/^\d{4}-\d{2}-\d{2}$/.test(v)?v:'';});
+  var tm=String((o&&o.time)||'').trim();r.time=/^\d{2}:\d{2}$/.test(tm)?tm:'';
+  if(!r.title)r.title=r.where||BTYPES[r.type].label;
+  return r;
+}
+function impIsDup(r){
+  if(!r.ref)return false;
+  var ref=r.ref.toLowerCase();
+  return list('booking').some(function(b){return b.tripId===S.imp.tripId&&b.ref&&String(b.ref).toLowerCase()===ref&&(b.title||'').toLowerCase()===r.title.toLowerCase();});
+}
+function impOutside(r){
+  var t=S.items.get(S.imp.tripId),d=pd(r.date),s=pd(t&&t.start),e=pd(t&&t.end);
+  if(!d||!s||!e)return false;
+  return d<addDays(s,-30)||d>addDays(e,30);
+}
+function impOpen(tripId){
+  S.imp={tripId:tripId,stage:'pick',srcs:[],text:'',busy:false,ctl:null};
+  impRender();
+}
+function impRender(){
+  var I=S.imp;if(!I)return;
+  var body='',foot='';
+  if(I.stage==='pick'){
+    body+='<p class="note">Add one or more booking confirmations. PDF, JPG, PNG or a screenshot works. For an email, save it as PDF, take a screenshot, or paste its text below.</p>';
+    body+='<div class="pick-row"><span class="btn pick">'+ic('clip',18)+'Choose files<input type="file" id="impFile" multiple accept="image/*,application/pdf" aria-label="Choose files"></span><span class="btn pick">'+ic('upload',18)+'Take photo<input type="file" id="impCam" accept="image/*" capture="environment" aria-label="Take a photo"></span></div>';
+    body+='<div id="impList">'+impListHTML()+'</div>';
+    body+='<div class="fld"><label for="impText">Or paste an email or confirmation text</label><textarea id="impText" class="imp-text" placeholder="Paste the whole email here">'+esc(I.text)+'</textarea></div>';
+    body+='<p class="note">When you tap Read details, the files and text are sent to Claude using your own Claude usage. You will be asked to allow this the first time.</p>';
+    foot='<button class="btn primary" type="button" data-act="impRun" id="impRunBtn">Read details</button>';
+  }else if(I.stage==='reading'){
+    body+='<div class="imp-working" role="status" aria-live="polite"><span class="imp-dot" aria-hidden="true"></span><span>Reading your confirmation'+(I.srcs.length>1?'s':'')+'. This can take up to a minute.</span></div>';
+    body+=I.srcs.map(function(x){return '<div class="file-row"><span class="thumb">'+ic(x.file?'clip':'upload',20)+'</span><span style="min-width:0"><span style="font-weight:600;overflow-wrap:anywhere">'+esc(x.name)+'</span><span class="sub">'+esc(x.status==='done'?'Done':x.status==='error'?'Could not read':(x.step||'Waiting'))+'</span></span><span></span></div>';}).join('');
+    foot='<button class="btn" type="button" data-act="impStop">Stop</button>';
+  }else{
+    var n=impCount();
+    I.srcs.forEach(function(x,si){
+      body+='<section class="imp-src" aria-label="'+esc(x.name)+'"><h3>'+esc(x.name)+'</h3>';
+      if(x.status==='error')body+='<p class="note" style="color:var(--hot)">'+esc(x.err||'Could not read this one.')+'</p>';
+      (x.items||[]).forEach(function(r,ii){
+        var d=pd(r.date),e=pd(r.endDate);
+        var when=d?fd(d,'long')+(r.time?' · '+r.time:'')+(e&&r.endDate!==r.date?' to '+fd(e,'long'):''):'No date found';
+        body+='<div class="imp-card"><input type="checkbox" id="imp_'+si+'_'+ii+'" data-imp="'+si+':'+ii+'"'+(r.incl?' checked':'')+' aria-label="Add '+esc(r.title)+'"><div class="imp-b"><label for="imp_'+si+'_'+ii+'" class="t">'+ic((BTYPES[r.type]||BTYPES.other).ico,16)+' '+esc(r.title)+'</label><span class="s">'+esc((BTYPES[r.type]||BTYPES.other).label)+' · '+esc(when)+'</span>'
+          +(r.where?'<span class="s">'+esc(r.where)+'</span>':'')+(r.ref?'<span class="s">Confirmation: <span class="mono">'+esc(r.ref)+'</span></span>':'')+(r.notes?'<span class="s">'+esc(r.notes)+'</span>':'')
+          +'<span class="row">'+(r.placeholder?'<span class="pill warm">No details found. Saved as a document</span>':'')+(r.dup?'<span class="pill warm">Already in this trip</span>':'')+(r.outside?'<span class="pill warm">Date is outside this trip</span>':'')
+          +'<button class="btn small" type="button" data-act="impEdit" data-s="'+si+'" data-i="'+ii+'">Edit first</button></span></div></div>';
+      });
+      body+='</section>';
+    });
+    body+='<p class="note">Check the details against your confirmation. The original file is attached to each booking.</p>';
+    foot='<button class="btn" type="button" data-act="impBack">Back</button><button class="btn primary" type="button" data-act="impAdd" id="impAddBtn"'+(n?'':' disabled')+'>Add '+n+' to trip</button>';
+  }
+  openSheet('Import a confirmation',body,foot,'import');
+}
+function impListHTML(){
+  var I=S.imp;
+  return I.srcs.filter(function(x){return x.file;}).map(function(x,i){return '<div class="file-row"><span class="thumb">'+ic('clip',20)+'</span><span style="min-width:0"><span style="font-weight:600;overflow-wrap:anywhere">'+esc(x.name)+'</span><span class="sub">'+esc(bytes(x.file.size))+'</span></span><button class="rm" type="button" data-act="impRm" data-i="'+i+'" aria-label="Remove '+esc(x.name)+'">'+ic('x',18)+'</button></div>';}).join('');
+}
+function impCount(){var n=0;S.imp.srcs.forEach(function(x){(x.items||[]).forEach(function(r){if(r.incl)n++;});});return n;}
+function impErr(e){return impErr0(e)+' ['+String((e&&(e.code||e.message))||'unknown').slice(0,60)+']';}
+function impErr0(e){
+  var c=e&&e.code;
+  return c==='no_key'?'Add your Anthropic API key first: More, then Backup & data.'
+    :c==='bad_key'?'The API key was not accepted. Check it in More, then Backup & data.'
+    :c==='offline'?'No internet connection. Connect and try again.'
+    :c==='not_granted'?'You chose not to allow Claude to read this. You can still add the booking by hand.'
+    :c==='rate_limited'?'Too many requests right now. Wait a minute and try again.'
+    :c==='session_expired'?'Sign in to Claude again, then retry.'
+    :c==='image_rejected'?'That image could not be read. Try a PDF or a clearer screenshot.'
+    :c==='images_unavailable'?'Reading images is not available in this view. Try a PDF, or paste the text.'
+    :c==='invalid_json'?'Could not make sense of the result. Try again, or add it by hand.'
+    :c==='sampling_disabled'||c==='capability_disabled'||c==='not_declared'?'Claude is not available for this account here.'
+    :(e&&e.message==='pdfjs')?'Could not open this PDF here. Try a screenshot of it, or paste the text.'
+    :'Something went wrong reading it. Try again.';
+}
+async function impRun(){
+  var I=S.imp;if(!I||I.busy)return;
+  var ta=$('#impText');if(ta)I.text=ta.value;
+  var txt=(I.text||'').trim();
+  I.srcs=I.srcs.filter(function(x){return x.file;});
+  if(txt)I.srcs.push({name:'Pasted text',file:null,text:txt});
+  if(!I.srcs.length){toast('Choose a file or paste some text first.');return;}
+  I.srcs.forEach(function(x){x.status='waiting';x.items=null;x.err=null;});
+  I.busy=true;I.stage='reading';I.ctl=new AbortController();impRender();
+  var ctl=I.ctl;
+  for(var i=0;i<I.srcs.length;i++){
+    var x=I.srcs[i];
+    if(ctl.signal.aborted)break;
+    try{
+      var content='',images=[];
+      x.step='Opening the file…';impRender();
+      if(!x.file){content='Confirmation text:\n'+x.text.slice(0,60000);}
+      else if(fileKind(x.file)==='application/pdf'){
+        var pi=caps.sample.nativePdf?{text:'',images:[x.file]}:await pdfToInput(x.file);
+        if(pi.text)content='Text of the PDF "'+x.name+'":\n'+pi.text;
+        else{images=pi.images;content='The attached images are the pages of the PDF "'+x.name+'".';}
+      }else{images=[x.file];content='The attached image is a booking confirmation or a screenshot of one.';}
+      if(images.length&&!caps.imgOK)throw {code:'images_unavailable'};
+      x.step='Asking Claude. Allow it if a prompt appears…';impRender();
+      var opts={signal:ctl.signal};
+      if(images.length)opts.images=images;
+      var out=await caps.sample.json(impPrompt(content),opts);
+      var arr=Array.isArray(out)?out:(out&&Array.isArray(out.bookings)?out.bookings:(out&&typeof out==='object'?[out]:[]));
+      x.items=arr.slice(0,12).map(impClean).filter(function(r){return r.title||r.date;}).map(function(r){r.dup=impIsDup(r);r.outside=impOutside(r);r.incl=!r.dup;return r;});
+      if(!x.items.length&&x.file){x.items=[{type:'other',title:x.name.replace(/\.[^.]+$/,''),date:'',time:'',endDate:'',where:'',ref:'',notes:'',placeholder:true,incl:true}];}
+      x.status='done';
+    }catch(e){
+      if(e&&e.code==='cancelled'){break;}
+      x.status='error';x.err=impErr(e);x.items=x.items||[];
+      if(e&&(e.code==='not_granted'||e.code==='sampling_disabled'||e.code==='capability_disabled'||e.code==='not_declared'||e.code==='session_expired'||e.code==='no_key'||e.code==='bad_key')){
+        for(var k=i+1;k<I.srcs.length;k++){I.srcs[k].status='error';I.srcs[k].err=x.err;I.srcs[k].items=[];}
+        break;
+      }
+    }
+  }
+  I.busy=false;I.ctl=null;
+  if(!S.imp||S.imp!==I)return;
+  if(ctl.signal.aborted){I.stage='pick';I.srcs=I.srcs.filter(function(x){return x.file;});impRender();return;}
+  I.stage='review';impRender();
+}
+async function impAdd(){
+  var I=S.imp;if(!I||I.busy)return;
+  I.busy=true;var btn=$('#impAddBtn');if(btn){btn.disabled=true;btn.textContent='Saving…';}
+  var added=0;
+  try{
+    for(var si=0;si<I.srcs.length;si++){
+      var x=I.srcs[si],file=null;
+      for(var ii=0;ii<(x.items||[]).length;ii++){
+        var r=x.items[ii];if(!r.incl)continue;
+        if(x.file&&!file){
+          var up=await caps.assets.upload(x.file,{type:fileKind(x.file),folder:folderFor({kind:'booking',tripId:I.tripId})});
+          file={id:up.id,name:x.file.name,type:up.contentType,size:up.sizeBytes};
+        }
+        var obj={kind:'booking',tripId:I.tripId,type:r.type,title:r.title,date:r.date,time:r.time,endDate:r.endDate,where:r.where,ref:r.ref,notes:r.notes,createdAt:new Date().toISOString()};
+        if(file)obj.files=[file];
+        await Store.save(gid('booking'),obj);added++;
+      }
+    }
+    S.imp=null;closeSheet();S.tripTab='plan';renderAll();toast('Added '+added+' to your trip');
+  }catch(e){
+    I.busy=false;if(btn){btn.disabled=false;btn.textContent='Add '+impCount()+' to trip';}
+    var c=e&&e.code;
+    toast(added?'Added '+added+', then something failed. Check the trip, then retry.':(c==='too_large'?'A file is over 20 MB.':'Could not save. Try again.'));
+    renderAll();
+  }
+}
+var delTimer=null;
+var A={
+  tab:function(el){go(el.dataset.v);},
+  openfile:function(el){if(window.PercyNative)window.PercyNative.open(el.dataset.id,el.dataset.type);},
+  saveKey:function(){var i=$('#apiKey'),v=(i&&i.value||'').trim();if(!v){toast('Paste your key first.');return;}lsSet('percy.apikey',v);i.value='';toast('Key saved on this phone.');renderAll();},
+  impOpen:function(el){impOpen(el.dataset.trip);},
+  impRun:function(){impRun();},
+  impStop:function(){if(S.imp&&S.imp.ctl)S.imp.ctl.abort();},
+  impBack:function(){if(S.imp){S.imp.stage='pick';S.imp.srcs=S.imp.srcs.filter(function(x){return x.file;});impRender();}},
+  impAdd:function(){impAdd();},
+  impRm:function(el){var I=S.imp;if(!I)return;var files=I.srcs.filter(function(x){return x.file;});var x=files[Number(el.dataset.i)];I.srcs=I.srcs.filter(function(y){return y!==x;});$('#impList').innerHTML=impListHTML();},
+  impEdit:function(el){
+    var I=S.imp;if(!I)return;var x=I.srcs[Number(el.dataset.s)],r=x&&x.items[Number(el.dataset.i)];if(!r)return;
+    var tripId=I.tripId,file=x.file;
+    S.imp=null;closeSheet();
+    openForm('booking',null,{tripId:tripId,type:r.type,title:r.title,date:r.date,time:r.time,endDate:r.endDate,where:r.where,ref:r.ref,notes:r.notes});
+    if(file&&S.form){S.form.pending.push(file);var fl=$('#fileList');if(fl)fl.innerHTML=filesHTML();}
+  },
+  go:function(el){go(el.dataset.v);},
+  search:function(){openSearch();},
+  fab:function(){openAddMenu();},
+  closeSheet:function(){closeSheet();},
+  add:function(el){var p=null;try{p=el.dataset.preset?JSON.parse(el.dataset.preset):null;}catch(e){}openForm(el.dataset.kind,null,p);},
+  range:function(el){S.range=Number(el.dataset.v);renderAll();},
+  vcat:function(el){S.vaultCat=el.dataset.v;renderAll();},
+  mview:function(el){S.moneyView=el.dataset.v;renderAll();},
+  rfilter:function(el){S.recFilter=el.dataset.v;renderAll();},
+  fy:function(el){S.taxFY=Number(el.dataset.v);renderAll();},
+  more:function(el){S.more=el.dataset.v||null;renderAll();window.scrollTo(0,0);},
+  tripBack:function(){S.trip=null;renderAll();window.scrollTo(0,0);},
+  tripTab:function(el){S.tripTab=el.dataset.v;renderAll();},
+  calnav:function(el){var d=new Date(S.calY,S.calM+Number(el.dataset.v),1,12);S.calY=d.getFullYear();S.calM=d.getMonth();S.calSel=null;renderAll();},
+  calday:function(el){S.calSel=el.dataset.d;renderAll();},
+  reveal:function(el){var id=el.dataset.id;if(S.reveal.has(id))S.reveal.delete(id);else S.reveal.add(id);renderAll();},
+  copy:function(el){copyText(el.dataset.v);},
+  tgl:async function(el){var it=S.items.get(el.dataset.id);if(!it)return;try{await Store.save(el.dataset.id,Object.assign({},it,{done:!it.done}));}catch(e){toast('Could not update.');}},
+  starterLease:function(){addStarter('lease');},
+  starterTrip:function(){addStarter('trip');},
+  rmfile:function(el){var f=S.form;if(!f)return;var x=f.files.splice(Number(el.dataset.i),1)[0];if(x)f.removed.push(x);$('#fileList').innerHTML=filesHTML();},
+  rmpend:function(el){var f=S.form;if(!f)return;f.pending.splice(Number(el.dataset.i),1);$('#fileList').innerHTML=filesHTML();},
+  delAsk:function(el){
+    var f=S.form;if(!f)return;
+    if(!f.confirmDel){f.confirmDel=true;var extra=f.kind==='trip'?'trip and its plans':'item';el.innerHTML=ic('trash',18)+'Tap again to delete';el.style.flex='1 1 auto';clearTimeout(delTimer);delTimer=setTimeout(function(){if(S.form&&$('#delBtn')){S.form.confirmDel=false;$('#delBtn').innerHTML=ic('trash',18)+'Delete';$('#delBtn').style.flex='0 0 auto';}},4000);return;
+    }
+    doDelete();
+  },
+  export:function(){saveFile('percy-backup-'+ymd(today())+'.json',JSON.stringify({app:'percy',version:1,exportedAt:new Date().toISOString(),items:Object.fromEntries(S.items)},null,2));},
+  importPick:function(){var i=$('#importInput');if(i)i.click();},
+  taxcsv:function(){
+    var rows=taxItems().filter(function(r){return fyOf(pd(r.date))===S.taxFY;}).sort(function(a,b){return String(a.date).localeCompare(String(b.date));});
+    var csv=['Date,Item,Store,Amount,Note'].concat(rows.map(function(r){return [r.date,r.title,r.store,r.amount,r.taxNote].map(csvCell).join(',');})).join('\n');
+    saveFile('tax-receipts-'+fyLabel(S.taxFY).replace(/\s/g,'-').replace('–','-')+'.csv',csv);
+  }
+};
+
+document.addEventListener('click',function(e){
+  if(e.target===$('#scrim')){closeSheet();return;}
+  var an=e.target.closest('a[href]');if(an&&!an.dataset.act)return;
+  var el=e.target.closest('[data-act],[data-open],[data-go]');if(!el)return;
+  if(el.dataset.act){var fn=A[el.dataset.act];if(fn){e.preventDefault();fn(el,e);}return;}
+  if(el.dataset.open){var p=el.dataset.open.split(':');openForm(p[0],p[1]);return;}
+  if(el.dataset.go){
+    var tab=el.dataset.go;S.tab=tab;S.reveal=new Set();S.more=null;
+    S.trip=tab==='trips'&&el.dataset.trip?el.dataset.trip:null;if(S.trip)S.tripTab='plan';
+    lsSet('lap.tab',tab);if(!$('#scrim').hidden)closeSheet();renderAll();window.scrollTo(0,0);
+  }
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'&&!$('#scrim').hidden){closeSheet();return;}
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('[role="button"]')){e.preventDefault();e.target.click();}
+});
+document.addEventListener('change',function(e){
+  var t=e.target;
+  if(t.id==='fileInput'&&S.form){
+    Array.prototype.forEach.call(t.files,function(file){
+      if(!fileKind(file)){toast('Unsupported file: '+file.name+'. Use PDF, JPG or PNG (HEIC is not supported).');return;}
+      if(file.size>20*1048576){toast(file.name+' is over 20 MB.');return;}
+      S.form.pending.push(file);
+    });
+    t.value='';$('#fileList').innerHTML=filesHTML();
+  }
+  if((t.id==='impFile'||t.id==='impCam')&&S.imp){
+    Array.prototype.forEach.call(t.files,function(file){
+      if(!fileKind(file)){toast('Unsupported file: '+file.name+'. Use PDF, JPG or PNG (HEIC is not supported).');return;}
+      if(file.size>20*1048576){toast(file.name+' is over 20 MB.');return;}
+      S.imp.srcs.push({name:file.name,file:file});
+    });
+    t.value='';$('#impList').innerHTML=impListHTML();
+  }
+  if(t.matches&&t.matches('input[data-imp]')&&S.imp){var q=t.dataset.imp.split(':'),rr=S.imp.srcs[+q[0]].items[+q[1]];rr.incl=t.checked;var ab=$('#impAddBtn');if(ab){var c=impCount();ab.textContent='Add '+c+' to trip';ab.disabled=!c;}}
+  if(t.id==='importInput'&&t.files&&t.files[0]){importBackup(t.files[0]);t.value='';}
+});
+document.addEventListener('submit',function(e){
+  e.preventDefault();
+  var form=e.target;
+  if(form.id==='sheetForm'){if(S.sheetMode==='form')saveForm();return;}
+  if(form.dataset.form==='addTtask'){
+    var inp=$('#newTtask'),v=(inp.value||'').trim();if(!v||!S.trip)return;
+    inp.value='';Store.save(gid('ttask'),{kind:'ttask',tripId:S.trip,title:v}).catch(function(){toast('Could not add.');});
+  }
+});
+
+/* ---------- boot ---------- */
+(function boot(){
+  $('#searchBtn').innerHTML=ic('search',22);$('#closeBtn').innerHTML=ic('x',22);$('#fab').innerHTML=ic('plus',26);
+  var t=lsGet('lap.tab');if(t&&TABS.some(function(x){return x[0]===t;}))S.tab=t;
+  renderAll();
+  Store.init();
+})();
+})();
+</script>
