@@ -1,0 +1,20 @@
+{
+  "name": "percy",
+  "version": "1.0.0",
+  "description": "Percy life admin app",
+  "scripts": {
+    "sync": "cap sync android"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor-community/file-opener": "^6.0.1",
+    "@capacitor/android": "^6.2.2",
+    "@capacitor/cli": "^6.2.2",
+    "@capacitor/core": "^6.2.2",
+    "@capacitor/filesystem": "^6.0.4",
+    "@fontsource/atkinson-hyperlegible": "^5.3.0"
+  },
+  "private": true
+}
